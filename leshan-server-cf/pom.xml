@@ -21,7 +21,7 @@ Contributors:
     <parent>
         <groupId>org.eclipse.leshan</groupId>
         <artifactId>leshan</artifactId>
-        <version>0.1.11-M5-SNAPSHOT</version>
+        <version>99.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>leshan-server-cf</artifactId>
     <packaging>bundle</packaging>
@@ -32,10 +32,12 @@ Contributors:
         <dependency>
             <groupId>org.eclipse.leshan</groupId>
             <artifactId>leshan-server-core</artifactId>
+            <version>0.1.11-M5-SNAPSHOT</version>        
         </dependency>
         <dependency>
             <groupId>org.eclipse.californium</groupId>
             <artifactId>californium-core</artifactId>
+            <version>99.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.californium</groupId>

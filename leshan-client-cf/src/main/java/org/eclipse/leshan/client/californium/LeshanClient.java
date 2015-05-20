@@ -23,6 +23,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.eclipse.californium.core.CoapServer;
 import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
+import org.eclipse.californium.core.network.tcp.TCPEndpoint;
+import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
 import org.eclipse.leshan.client.LwM2mClient;
 import org.eclipse.leshan.client.californium.impl.CaliforniumLwM2mClientRequestSender;
 import org.eclipse.leshan.client.californium.impl.ObjectResource;
@@ -42,18 +44,18 @@ public class LeshanClient implements LwM2mClient {
     private final AtomicBoolean clientServerStarted = new AtomicBoolean(false);
     private final CaliforniumLwM2mClientRequestSender requestSender;
     private final List<LwM2mObjectEnabler> objectEnablers;
-
-    public LeshanClient(final InetSocketAddress serverAddress, final List<LwM2mObjectEnabler> objectEnablers) {
-        this(new InetSocketAddress("0", 0), serverAddress, new CoapServer(), objectEnablers);
+    
+    public LeshanClient(final InetSocketAddress serverAddress, final List<LwM2mObjectEnabler> objectEnablers, final CommunicationRole role) {
+        this(new InetSocketAddress("0", 0), serverAddress, new CoapServer(), objectEnablers, role);
     }
 
     public LeshanClient(final InetSocketAddress clientAddress, final InetSocketAddress serverAddress,
-            final List<LwM2mObjectEnabler> objectEnablers) {
-        this(clientAddress, serverAddress, new CoapServer(), objectEnablers);
+    		final List<LwM2mObjectEnabler> objectEnablers, final CommunicationRole role) {
+        this(clientAddress, serverAddress, new CoapServer(), objectEnablers, role);
     }
 
-    public LeshanClient(final InetSocketAddress clientAddress, final InetSocketAddress serverAddress,
-            final CoapServer serverLocal, final List<LwM2mObjectEnabler> objectEnablers) {
+    public LeshanClient(InetSocketAddress clientAddress, final InetSocketAddress serverAddress,
+            final CoapServer serverLocal, final List<LwM2mObjectEnabler> objectEnablers, final CommunicationRole role) {
 
         Validate.notNull(clientAddress);
         Validate.notNull(serverLocal);
@@ -61,13 +63,38 @@ public class LeshanClient implements LwM2mClient {
         Validate.notNull(objectEnablers);
         Validate.notEmpty(objectEnablers);
 
-        final Endpoint endpoint = new CoAPEndpoint(clientAddress);
+        Endpoint endpoint;
+        switch(role) {
+        case NODE:
+        	endpoint = new CoAPEndpoint(clientAddress);
+        	break;
+        case CLIENT:
+        	endpoint = TCPEndpoint.getNewTcpEndpointBuilder()
+        						  .setAsTcpClient()
+        						  .setRemoteAddress(serverAddress.getHostName())
+        						  .setPort(serverAddress.getPort())
+        						  .buildTcpEndpoint();
+        	clientAddress = serverAddress;//not sure what to do here, why client and server?
+        	break;
+        case SERVER://not sure if this case is possible
+        	endpoint = TCPEndpoint.getNewTcpEndpointBuilder()
+        						  .setAsTcpServer()
+        						  .setRemoteAddress(serverAddress.getHostName())
+        						  .setPort(serverAddress.getPort())
+        						  .buildTcpEndpoint();
+        	clientAddress = serverAddress;//not sure what to do here, why client and server?
+        	break;
+        default:
+        	throw new IllegalArgumentException("A communication ROLE must be passed in");
+        	
+        }
+          
         serverLocal.addEndpoint(endpoint);
 
         clientSideServer = serverLocal;
 
         this.objectEnablers = new ArrayList<>(objectEnablers);
-        for (LwM2mObjectEnabler enabler : objectEnablers) {
+        for (final LwM2mObjectEnabler enabler : objectEnablers) {
             if (clientSideServer.getRoot().getChild(Integer.toString(enabler.getId())) != null) {
                 throw new IllegalArgumentException("Trying to load Client Object of name '" + enabler.getId()
                         + "' when one was already added.");

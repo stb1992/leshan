@@ -21,8 +21,8 @@ Contributors:
         <artifactId>leshan</artifactId>
         <version>99.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>leshan-integration-tests</artifactId>
-    <name>leshan - integration tests</name>
+    <artifactId>leshan-tcp-integration-tests</artifactId>
+    <name>leshan - tcp - integration tests</name>
     <description>The client/server integrations tests for leshan</description>
 
 
@@ -34,11 +34,11 @@ Contributors:
         <dependency>
             <groupId>org.eclipse.leshan</groupId>
             <artifactId>leshan-server-cf</artifactId>
-        </dependency>
+            </dependency>
         <dependency>
             <groupId>org.eclipse.leshan</groupId>
             <artifactId>leshan-client-cf</artifactId>
-        </dependency>
+            </dependency>
 
         <!-- test dependencies -->
         <dependency>

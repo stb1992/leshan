@@ -18,6 +18,7 @@ package org.eclipse.leshan.server.californium;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
+import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
 import org.eclipse.leshan.server.LwM2mServer;
 import org.eclipse.leshan.server.californium.impl.LeshanServer;
 import org.eclipse.leshan.server.client.ClientRegistry;
@@ -48,45 +49,51 @@ public class LeshanServerBuilder {
     private LwM2mModelProvider modelProvider;
     private InetSocketAddress localAddress;
     private InetSocketAddress localAddressSecure;
+    private CommunicationRole role;
 
-    public LeshanServerBuilder setLocalAddress(String hostname, int port) {
+    public LeshanServerBuilder setLocalAddress(final String hostname, final int port) {
         this.localAddress = new InetSocketAddress(hostname, port);
         return this;
     }
 
-    public LeshanServerBuilder setLocalAddress(InetSocketAddress localAddress) {
+    public LeshanServerBuilder setLocalAddress(final InetSocketAddress localAddress) {
         this.localAddress = localAddress;
         return this;
     }
 
-    public LeshanServerBuilder setLocalAddressSecure(String hostname, int port) {
+    public LeshanServerBuilder setLocalAddressSecure(final String hostname, final int port) {
         this.localAddressSecure = new InetSocketAddress(hostname, port);
         return this;
     }
 
-    public LeshanServerBuilder setLocalAddressSecure(InetSocketAddress localAddressSecure) {
+    public LeshanServerBuilder setLocalAddressSecure(final InetSocketAddress localAddressSecure) {
         this.localAddressSecure = localAddressSecure;
         return this;
     }
 
-    public LeshanServerBuilder setClientRegistry(ClientRegistry clientRegistry) {
+    public LeshanServerBuilder setClientRegistry(final ClientRegistry clientRegistry) {
         this.clientRegistry = clientRegistry;
         return this;
     }
 
-    public LeshanServerBuilder setObservationRegistry(ObservationRegistry observationRegistry) {
+    public LeshanServerBuilder setObservationRegistry(final ObservationRegistry observationRegistry) {
         this.observationRegistry = observationRegistry;
         return this;
     }
 
-    public LeshanServerBuilder setSecurityRegistry(SecurityRegistry securityRegistry) {
+    public LeshanServerBuilder setSecurityRegistry(final SecurityRegistry securityRegistry) {
         this.securityRegistry = securityRegistry;
         return this;
     }
 
-    public LeshanServerBuilder setObjectModelProvider(LwM2mModelProvider objectModelProvider) {
+    public LeshanServerBuilder setObjectModelProvider(final LwM2mModelProvider objectModelProvider) {
         this.modelProvider = objectModelProvider;
         return this;
+    }
+    
+    public LeshanServerBuilder setCommnuicationRole(final CommunicationRole role) {
+    	this.role = role;
+    	return this;
     }
 
     public LeshanServer build() {
@@ -103,7 +110,10 @@ public class LeshanServerBuilder {
         if (modelProvider == null) {
             modelProvider = new StandardModelProvider();
         }
+        if (role == null) {
+            role = CommunicationRole.NODE;
+        }
         return new LeshanServer(localAddress, localAddressSecure, clientRegistry, securityRegistry,
-                observationRegistry, modelProvider);
+                observationRegistry, modelProvider, role);
     }
 }

@@ -82,7 +82,7 @@ public class RegistrationTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void fail_to_create_client_with_null() {
-        helper.client = new LeshanClient(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), null, CommunicationRole.NODE);
+        helper.client = new LeshanClient(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), null, CommunicationRole.CLIENT);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -92,7 +92,7 @@ public class RegistrationTest {
         final ArrayList<LwM2mObjectEnabler> objects = new ArrayList<>();
         objects.add(objectEnabler);
         objects.add(objectEnabler2);
-        helper.client = new LeshanClient(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), objects, CommunicationRole.NODE);
+        helper.client = new LeshanClient(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), objects, CommunicationRole.CLIENT);
     }
 
     @Test

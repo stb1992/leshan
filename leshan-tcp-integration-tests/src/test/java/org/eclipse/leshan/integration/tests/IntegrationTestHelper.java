@@ -16,12 +16,10 @@
 
 package org.eclipse.leshan.integration.tests;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
 import org.eclipse.leshan.client.LwM2mClient;
 import org.eclipse.leshan.client.californium.LeshanClient;
@@ -30,8 +28,6 @@ import org.eclipse.leshan.client.resource.ObjectEnabler;
 import org.eclipse.leshan.client.resource.ObjectsInitializer;
 import org.eclipse.leshan.server.LwM2mServer;
 import org.eclipse.leshan.server.californium.LeshanServerBuilder;
-import org.eclipse.leshan.server.californium.impl.LeshanServer;
-import org.eclipse.leshan.server.californium.impl.SecureEndpoint;
 import org.eclipse.leshan.server.client.Client;
 import org.eclipse.leshan.server.impl.SecurityRegistryImpl;
 
@@ -42,6 +38,8 @@ import org.eclipse.leshan.server.impl.SecurityRegistryImpl;
 public class IntegrationTestHelper {
 
     static final String ENDPOINT_IDENTIFIER = "kdfflwmtm";
+	private static final InetSocketAddress serverAddress = new InetSocketAddress("localHost", 5683);
+	private static final InetSocketAddress serverSecureAddress = new InetSocketAddress("localHost", 443);
 
     LwM2mServer server;
     LwM2mClient client;
@@ -49,28 +47,29 @@ public class IntegrationTestHelper {
     public void createClient() {
         final ObjectsInitializer initializer = new ObjectsInitializer();
         final List<ObjectEnabler> objects = initializer.create(2, 3);
-        client = new LeshanClient(getServerAddress(), new ArrayList<LwM2mObjectEnabler>(objects), CommunicationRole.NODE);
+        client = new LeshanClient(getServerAddress(), new ArrayList<LwM2mObjectEnabler>(objects), CommunicationRole.CLIENT);
     }
 
     public void createServer() {
         final LeshanServerBuilder builder = new LeshanServerBuilder();
-        builder.setLocalAddress(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
-        builder.setLocalAddressSecure(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
-        builder.setSecurityRegistry(new SecurityRegistryImpl() {
-            // TODO we should separate SecurityRegistryImpl in 2 registries :
-            // InMemorySecurityRegistry and PersistentSecurityRegistry
+		builder.setLocalAddress(serverAddress);		
+		builder.setLocalAddressSecure(serverSecureAddress);
+		builder.setSecurityRegistry(new SecurityRegistryImpl() {
+			// TODO we should separate SecurityRegistryImpl in 2 registries :
+			// InMemorySecurityRegistry and PersistentSecurityRegistry
 
-            @Override
-            protected void loadFromFile() {
-                // do not load From File
-            }
+			@Override
+			protected void loadFromFile() {
+				// do not load From File
+			}
 
-            @Override
-            protected void saveToFile() {
-                // do not save to file
-            }
-        });
-        server = builder.build();
+			@Override
+			protected void saveToFile() {
+				// do not save to file
+			}
+		});
+		builder.setCommnuicationRole(CommunicationRole.SERVER);
+		server = builder.build();
     }
 
     Client getClient() {
@@ -78,18 +77,10 @@ public class IntegrationTestHelper {
     }
 
     protected InetSocketAddress getServerSecureAddress() {
-        for (final Endpoint endpoint : ((LeshanServer) server).getCoapServer().getEndpoints()) {
-            if (endpoint instanceof SecureEndpoint)
-                return endpoint.getAddress();
-        }
-        return null;
+        return serverSecureAddress;
     }
 
     protected InetSocketAddress getServerAddress() {
-        for (final Endpoint endpoint : ((LeshanServer) server).getCoapServer().getEndpoints()) {
-            if (!(endpoint instanceof SecureEndpoint))
-                return endpoint.getAddress();
-        }
-        return null;
+        return serverAddress;
     }
 }

@@ -30,6 +30,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 
+import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
 import org.eclipse.leshan.ResponseCode;
 import org.eclipse.leshan.client.californium.LeshanClient;
 import org.eclipse.leshan.client.resource.BaseInstanceEnabler;
@@ -69,23 +70,22 @@ public class LeshanClientExample {
             final int serverPort) {
 
         // Initialize object list
-        ObjectsInitializer initializer = new ObjectsInitializer();
+        final ObjectsInitializer initializer = new ObjectsInitializer();
         initializer.setClassForObject(3, Device.class);
-        List<ObjectEnabler> enablers = initializer.createMandatory();
+        final List<ObjectEnabler> enablers = initializer.createMandatory();
 
         // Create client
         final InetSocketAddress clientAddress = new InetSocketAddress(localHostName, localPort);
         final InetSocketAddress serverAddress = new InetSocketAddress(serverHostName, serverPort);
 
-        final LeshanClient client = new LeshanClient(clientAddress, serverAddress, new ArrayList<LwM2mObjectEnabler>(
-                enablers));
+        final LeshanClient client = new LeshanClient(clientAddress, serverAddress, new ArrayList<LwM2mObjectEnabler>(enablers), CommunicationRole.CLIENT);
 
         // Start the client
         client.start();
 
         // Register to the server provided
         final String endpointIdentifier = UUID.randomUUID().toString();
-        RegisterResponse response = client.send(new RegisterRequest(endpointIdentifier));
+        final RegisterResponse response = client.send(new RegisterRequest(endpointIdentifier));
 
         // Report registration response.
         System.out.println("Device Registration (Success? " + response.getCode() + ")");
@@ -117,7 +117,7 @@ public class LeshanClientExample {
 
         public Device() {
             // notify new date each 5 second
-            Timer timer = new Timer();
+            final Timer timer = new Timer();
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
@@ -127,7 +127,7 @@ public class LeshanClientExample {
         }
 
         @Override
-        public ValueResponse read(int resourceid) {
+        public ValueResponse read(final int resourceid) {
             System.out.println("Read on resource " + resourceid);
             switch (resourceid) {
             case 0:
@@ -166,13 +166,13 @@ public class LeshanClientExample {
         }
 
         @Override
-        public LwM2mResponse execute(int resourceid, byte[] params) {
+        public LwM2mResponse execute(final int resourceid, final byte[] params) {
             System.out.println("Execute on resource " + resourceid + " params " + params);
             return new LwM2mResponse(ResponseCode.CHANGED);
         }
 
         @Override
-        public LwM2mResponse write(int resourceid, LwM2mResource value) {
+        public LwM2mResponse write(final int resourceid, final LwM2mResource value) {
             System.out.println("Write on resource " + resourceid + " value " + value);
             switch (resourceid) {
             case 13:
@@ -226,7 +226,7 @@ public class LeshanClientExample {
             return utcOffset;
         }
 
-        private void setUtcOffset(String t) {
+        private void setUtcOffset(final String t) {
             utcOffset = t;
         }
 
@@ -236,7 +236,7 @@ public class LeshanClientExample {
             return timeZone;
         }
 
-        private void setTimezone(String t) {
+        private void setTimezone(final String t) {
             timeZone = t;
         }
 

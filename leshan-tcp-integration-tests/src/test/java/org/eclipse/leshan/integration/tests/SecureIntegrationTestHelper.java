@@ -130,7 +130,7 @@ public class SecureIntegrationTestHelper extends IntegrationTestHelper {
         coapServer.addEndpoint(new CoAPEndpoint(dtlsConnector, NetworkConfig.getStandard()));
 
         client = new LeshanClient(clientAddress, getServerSecureAddress(), coapServer,
-                new ArrayList<LwM2mObjectEnabler>(objects), CommunicationRole.NODE);
+                new ArrayList<LwM2mObjectEnabler>(objects), CommunicationRole.CLIENT);
     }
 
     // TODO we need better API for secure client, maybe we need a builder like leshanServer.
@@ -147,7 +147,7 @@ public class SecureIntegrationTestHelper extends IntegrationTestHelper {
         final CoapServer coapServer = new CoapServer();
         coapServer.addEndpoint(new CoAPEndpoint(dtlsConnector, NetworkConfig.getStandard()));
         client = new LeshanClient(clientAddress, getServerSecureAddress(), coapServer,
-                new ArrayList<LwM2mObjectEnabler>(objects), CommunicationRole.NODE);
+                new ArrayList<LwM2mObjectEnabler>(objects), CommunicationRole.CLIENT);
     }
 
     public void createPSKandRPKClient() {
@@ -163,7 +163,7 @@ public class SecureIntegrationTestHelper extends IntegrationTestHelper {
         final CoapServer coapServer = new CoapServer();
         coapServer.addEndpoint(new CoAPEndpoint(dtlsConnector, NetworkConfig.getStandard()));
         client = new LeshanClient(clientAddress, getServerSecureAddress(), coapServer,
-                new ArrayList<LwM2mObjectEnabler>(objects), CommunicationRole.NODE);
+                new ArrayList<LwM2mObjectEnabler>(objects), CommunicationRole.CLIENT);
     }
 
     public void createServerWithRPK() {
