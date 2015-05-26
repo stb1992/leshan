@@ -45,9 +45,11 @@ import org.eclipse.californium.scandium.DTLSConnector;
 import org.eclipse.californium.scandium.dtls.cipher.CipherSuite;
 import org.eclipse.californium.scandium.dtls.pskstore.StaticPskStore;
 import org.eclipse.leshan.client.californium.LeshanClient;
+import org.eclipse.leshan.client.californium.LeshanClientBuilder;
 import org.eclipse.leshan.client.resource.LwM2mObjectEnabler;
 import org.eclipse.leshan.client.resource.ObjectEnabler;
 import org.eclipse.leshan.client.resource.ObjectsInitializer;
+import org.eclipse.leshan.client.server.Server;
 import org.eclipse.leshan.server.californium.LeshanServerBuilder;
 import org.eclipse.leshan.server.impl.SecurityRegistryImpl;
 
@@ -77,8 +79,8 @@ public class SecureIntegrationTestHelper extends IntegrationTestHelper {
             final ECParameterSpec parameterSpec = algoParameters.getParameterSpec(ECParameterSpec.class);
 
             // Create key specs
-            final KeySpec publicKeySpec = new ECPublicKeySpec(new ECPoint(new BigInteger(publicX), new BigInteger(publicY)),
-                    parameterSpec);
+            final KeySpec publicKeySpec = new ECPublicKeySpec(new ECPoint(new BigInteger(publicX), new BigInteger(
+                    publicY)), parameterSpec);
             final KeySpec privateKeySpec = new ECPrivateKeySpec(new BigInteger(privateS), parameterSpec);
 
             // Get keys
@@ -104,8 +106,8 @@ public class SecureIntegrationTestHelper extends IntegrationTestHelper {
             final ECParameterSpec parameterSpec = algoParameters.getParameterSpec(ECParameterSpec.class);
 
             // Create key specs
-            final KeySpec publicKeySpec = new ECPublicKeySpec(new ECPoint(new BigInteger(publicX), new BigInteger(publicY)),
-                    parameterSpec);
+            final KeySpec publicKeySpec = new ECPublicKeySpec(new ECPoint(new BigInteger(publicX), new BigInteger(
+                    publicY)), parameterSpec);
             final KeySpec privateKeySpec = new ECPrivateKeySpec(new BigInteger(privateS), parameterSpec);
 
             // Get keys
@@ -116,54 +118,26 @@ public class SecureIntegrationTestHelper extends IntegrationTestHelper {
         }
     }
 
-    // TODO we need better API for secure client, maybe we need a builder like leshanServer.
     public void createPSKClient() {
-        final ObjectsInitializer initializer = new ObjectsInitializer();
-        final List<ObjectEnabler> objects = initializer.create(2, 3);
+        final LeshanClientBuilder builder = new LeshanClientBuilder();
+        builder.setRemoteServer(Server.createPskServer(getServerSecureAddress(), pskIdentity, pskKey));
 
-        final InetSocketAddress clientAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 0);
-        final DTLSConnector dtlsConnector = new DTLSConnector(clientAddress);
-        // TODO The preferered CipherSuite should not be necessary, if I only set the PSK (scandium bug ?)
-        dtlsConnector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_PSK_WITH_AES_128_CCM_8);
-        dtlsConnector.getConfig().setPskStore(new StaticPskStore(pskIdentity, pskKey));
-        final CoapServer coapServer = new CoapServer();
-        coapServer.addEndpoint(new CoAPEndpoint(dtlsConnector, NetworkConfig.getStandard()));
-
-        client = new LeshanClient(clientAddress, getServerSecureAddress(), coapServer,
-                new ArrayList<LwM2mObjectEnabler>(objects), CommunicationRole.NODE);
+        client = builder.build(2, 3);
     }
 
-    // TODO we need better API for secure client, maybe we need a builder like leshanServer.
     public void createRPKClient() {
-        final ObjectsInitializer initializer = new ObjectsInitializer();
-        final List<ObjectEnabler> objects = initializer.create(2, 3);
+        final LeshanClientBuilder builder = new LeshanClientBuilder();
+        builder.setRemoteServer(Server.createRpkServer(getServerSecureAddress(), clientPrivateKey, clientPublicKey));
 
-        final InetSocketAddress clientAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 0);
-        final DTLSConnector dtlsConnector = new DTLSConnector(clientAddress);
-        // TODO The preferered CipherSuite should not be necessary, if I only set the PSK (scandium bug ?)
-        dtlsConnector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8);
-        dtlsConnector.getConfig().setPrivateKey(clientPrivateKey, clientPublicKey);
-
-        final CoapServer coapServer = new CoapServer();
-        coapServer.addEndpoint(new CoAPEndpoint(dtlsConnector, NetworkConfig.getStandard()));
-        client = new LeshanClient(clientAddress, getServerSecureAddress(), coapServer,
-                new ArrayList<LwM2mObjectEnabler>(objects), CommunicationRole.NODE);
+        client = builder.build(2, 3);
     }
 
     public void createPSKandRPKClient() {
-        final ObjectsInitializer initializer = new ObjectsInitializer();
-        final List<ObjectEnabler> objects = initializer.create(2, 3);
+        final LeshanClientBuilder builder = new LeshanClientBuilder();
+        builder.setRemoteServer(Server.createPskAndRpkServer(getServerSecureAddress(), pskIdentity, pskKey,
+                clientPrivateKey, clientPublicKey));
 
-        final InetSocketAddress clientAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 0);
-        final DTLSConnector dtlsConnector = new DTLSConnector(clientAddress);
-        dtlsConnector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8);
-        dtlsConnector.getConfig().setPskStore(new StaticPskStore(pskIdentity, pskKey));
-        dtlsConnector.getConfig().setPrivateKey(clientPrivateKey, clientPublicKey);
-
-        final CoapServer coapServer = new CoapServer();
-        coapServer.addEndpoint(new CoAPEndpoint(dtlsConnector, NetworkConfig.getStandard()));
-        client = new LeshanClient(clientAddress, getServerSecureAddress(), coapServer,
-                new ArrayList<LwM2mObjectEnabler>(objects), CommunicationRole.NODE);
+        client = builder.build(2, 3);
     }
 
     public void createServerWithRPK() {
