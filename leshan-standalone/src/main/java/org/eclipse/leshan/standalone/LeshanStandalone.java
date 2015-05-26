@@ -32,6 +32,7 @@ import java.security.spec.KeySpec;
 
 import javax.xml.bind.DatatypeConverter;
 
+import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.webapp.WebAppContext;
@@ -54,17 +55,17 @@ public class LeshanStandalone {
 
     public void start() {
         // Use those ENV variables for specifying the interface to be bound for coap and coaps
-        String iface = System.getenv("COAPIFACE");
-        String ifaces = System.getenv("COAPSIFACE");
+        final String iface = "localhost:5683";//System.getenv("COAPIFACE");
+        final String ifaces = null;//System.getenv("COAPSIFACE");
 
         // Build LWM2M server
-        LeshanServerBuilder builder = new LeshanServerBuilder();
+        final LeshanServerBuilder builder = new LeshanServerBuilder();
         if (iface != null && !iface.isEmpty()) {
-            String[] add = iface.split(":");
+            final String[] add = iface.split(":");
             builder.setLocalAddress(add[0], Integer.parseInt(add[1]));
         }
         if (ifaces != null && !ifaces.isEmpty()) {
-            String[] adds = ifaces.split(":");
+            final String[] adds = ifaces.split(":");
             builder.setLocalAddressSecure(adds[0], Integer.parseInt(adds[1]));
         }
 
@@ -73,22 +74,22 @@ public class LeshanStandalone {
         PublicKey publicKey = null;
         try {
             // Get point values
-            byte[] publicX = DatatypeConverter
+            final byte[] publicX = DatatypeConverter
                     .parseHexBinary("fcc28728c123b155be410fc1c0651da374fc6ebe7f96606e90d927d188894a73");
-            byte[] publicY = DatatypeConverter
+            final byte[] publicY = DatatypeConverter
                     .parseHexBinary("d2ffaa73957d76984633fc1cc54d0b763ca0559a9dff9706e9f4557dacc3f52a");
-            byte[] privateS = DatatypeConverter
+            final byte[] privateS = DatatypeConverter
                     .parseHexBinary("1dae121ba406802ef07c193c1ee4df91115aabd79c1ed7f4c0ef7ef6a5449400");
 
             // Get Elliptic Curve Parameter spec for secp256r1
-            AlgorithmParameters algoParameters = AlgorithmParameters.getInstance("EC");
+            final AlgorithmParameters algoParameters = AlgorithmParameters.getInstance("EC");
             algoParameters.init(new ECGenParameterSpec("secp256r1"));
-            ECParameterSpec parameterSpec = algoParameters.getParameterSpec(ECParameterSpec.class);
+            final ECParameterSpec parameterSpec = algoParameters.getParameterSpec(ECParameterSpec.class);
 
             // Create key specs
-            KeySpec publicKeySpec = new ECPublicKeySpec(new ECPoint(new BigInteger(publicX), new BigInteger(publicY)),
+            final KeySpec publicKeySpec = new ECPublicKeySpec(new ECPoint(new BigInteger(publicX), new BigInteger(publicY)),
                     parameterSpec);
-            KeySpec privateKeySpec = new ECPrivateKeySpec(new BigInteger(privateS), parameterSpec);
+            final KeySpec privateKeySpec = new ECPrivateKeySpec(new BigInteger(privateS), parameterSpec);
 
             // Get keys
             publicKey = KeyFactory.getInstance("EC").generatePublic(publicKeySpec);
@@ -99,6 +100,7 @@ public class LeshanStandalone {
             LOG.warn("Unable to load RPK.", e);
         }
 
+        builder.setCommnuicationRole(CommunicationRole.SERVER);
         lwServer = builder.build();
         lwServer.start();
 
@@ -111,30 +113,30 @@ public class LeshanStandalone {
             webPort = "8080";
         }
         server = new Server(Integer.valueOf(webPort));
-        WebAppContext root = new WebAppContext();
+        final WebAppContext root = new WebAppContext();
         root.setContextPath("/");
         root.setResourceBase(this.getClass().getClassLoader().getResource("webapp").toExternalForm());
         root.setParentLoaderPriority(true);
         server.setHandler(root);
 
         // Create Servlet
-        EventServlet eventServlet = new EventServlet(lwServer);
-        ServletHolder eventServletHolder = new ServletHolder(eventServlet);
+        final EventServlet eventServlet = new EventServlet(lwServer);
+        final ServletHolder eventServletHolder = new ServletHolder(eventServlet);
         root.addServlet(eventServletHolder, "/event/*");
 
-        ServletHolder clientServletHolder = new ServletHolder(new ClientServlet(lwServer));
+        final ServletHolder clientServletHolder = new ServletHolder(new ClientServlet(lwServer));
         root.addServlet(clientServletHolder, "/api/clients/*");
 
-        ServletHolder securityServletHolder = new ServletHolder(new SecurityServlet(lwServer.getSecurityRegistry()));
+        final ServletHolder securityServletHolder = new ServletHolder(new SecurityServlet(lwServer.getSecurityRegistry()));
         root.addServlet(securityServletHolder, "/api/security/*");
 
-        ServletHolder objectSpecServletHolder = new ServletHolder(new ObjectSpecServlet());
+        final ServletHolder objectSpecServletHolder = new ServletHolder(new ObjectSpecServlet());
         root.addServlet(objectSpecServletHolder, "/api/objectspecs/*");
 
         // Start jetty
         try {
             server.start();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("jetty error", e);
         }
     }
@@ -143,12 +145,12 @@ public class LeshanStandalone {
         try {
             lwServer.destroy();
             server.stop();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         new LeshanStandalone().start();
     }
 }

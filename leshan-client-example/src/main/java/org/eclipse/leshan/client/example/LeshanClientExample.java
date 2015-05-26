@@ -54,7 +54,8 @@ import org.eclipse.leshan.core.response.ValueResponse;
 public class LeshanClientExample {
     private String registrationID;
 
-    public static void main(final String[] args) {
+    public static void main(String[] args) {
+    	args = new String[]{"localhost", "5683"};
         if (args.length != 4 && args.length != 2) {
             System.out
                     .println("Usage:\njava -jar target/leshan-client-example-*-SNAPSHOT-jar-with-dependencies.jar [ClientIP] [ClientPort] ServerIP ServerPort");
