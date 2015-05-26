@@ -20,25 +20,23 @@ package org.eclipse.leshan.client.example;
 
 import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
 import java.util.Random;
 import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 
-import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
 import org.eclipse.leshan.ResponseCode;
-import org.eclipse.leshan.client.californium.LeshanClient;
+import org.eclipse.leshan.client.LwM2mClient;
+import org.eclipse.leshan.client.californium.LeshanClientBuilder;
 import org.eclipse.leshan.client.resource.BaseInstanceEnabler;
-import org.eclipse.leshan.client.resource.LwM2mObjectEnabler;
-import org.eclipse.leshan.client.resource.ObjectEnabler;
 import org.eclipse.leshan.client.resource.ObjectsInitializer;
+import org.eclipse.leshan.client.server.Server;
 import org.eclipse.leshan.core.node.LwM2mResource;
 import org.eclipse.leshan.core.node.Value;
+import org.eclipse.leshan.core.request.BindingMode;
 import org.eclipse.leshan.core.request.DeregisterRequest;
 import org.eclipse.leshan.core.request.RegisterRequest;
 import org.eclipse.leshan.core.response.LwM2mResponse;
@@ -72,13 +70,18 @@ public class LeshanClientExample {
         // Initialize object list
         final ObjectsInitializer initializer = new ObjectsInitializer();
         initializer.setClassForObject(3, Device.class);
-        final List<ObjectEnabler> enablers = initializer.createMandatory();
 
         // Create client
         final InetSocketAddress clientAddress = new InetSocketAddress(localHostName, localPort);
         final InetSocketAddress serverAddress = new InetSocketAddress(serverHostName, serverPort);
 
-        final LeshanClient client = new LeshanClient(clientAddress, serverAddress, new ArrayList<LwM2mObjectEnabler>(enablers), CommunicationRole.CLIENT);
+        final LeshanClientBuilder builder = new LeshanClientBuilder();
+        builder.setObjectsInitializer(initializer);
+        builder.setLocalAddress(clientAddress);
+        builder.setRemoteServer(Server.createNoSecServer(serverAddress));
+        builder.setBindingMode(BindingMode.T);
+
+        final LwM2mClient client = builder.build();
 
         // Start the client
         client.start();
