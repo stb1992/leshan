@@ -22,7 +22,9 @@ import java.util.List;
 
 import org.eclipse.californium.core.CoapServer;
 import org.eclipse.californium.core.network.CoAPEndpoint;
+import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.network.config.NetworkConfig;
+import org.eclipse.californium.core.network.tcp.TCPEndpoint;
 import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
 import org.eclipse.californium.scandium.DTLSConnector;
 import org.eclipse.californium.scandium.dtls.cipher.CipherSuite;
@@ -37,7 +39,8 @@ import org.eclipse.leshan.core.request.BindingMode;
 import org.eclipse.leshan.util.Validate;
 
 /**
- * A builder for constructing a Leshan LW-M2M Client paired to a specific LW-M2M Server.
+ * A builder for constructing a Leshan LW-M2M Client paired to a specific LW-M2M Server using a specific set of Security
+ * keys for authentication.
  */
 public class LeshanClientBuilder {
 
@@ -134,45 +137,47 @@ public class LeshanClientBuilder {
             bindingMode = BindingMode.U;
         if (initializer == null)
             initializer = new ObjectsInitializer();
+        if (objectId == null)
+            objectId = new int[] {};
 
-        List<ObjectEnabler> objects = objectId == null ? initializer.createMandatory() : initializer.create(objectId);
+        List<ObjectEnabler> objects = objectId.length == 0 ? initializer.createMandatory() : initializer
+                .create(objectId);
 
-        CommunicationRole communicationRole;
+        Endpoint endpoint;
 
         switch (bindingMode) {
         case T:
-            communicationRole = CommunicationRole.CLIENT;
+            endpoint = TCPEndpoint.getNewTcpEndpointBuilder().setAsTcpClient()
+                    .setRemoteAddress(remoteServer.getServerAddress().getHostName())
+                    .setPort(remoteServer.getServerAddress().getPort()).buildTcpEndpoint();
             break;
         case U:
-            communicationRole = CommunicationRole.NODE;
+            if (remoteServer.getSecurityModes().contains(SecurityMode.NO_SEC)) {
+                endpoint = new CoAPEndpoint(localAddress);
+            } else {
+                DTLSConnector dtlsConnector = new DTLSConnector(localAddress);
+
+                if (remoteServer.getSecurityModes().contains(SecurityMode.PSK)) {
+                    // TODO The preferred CipherSuite should not be necessary, if I only set the PSK (scandium bug ?)
+                    dtlsConnector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_PSK_WITH_AES_128_CCM_8);
+                    dtlsConnector.getConfig().setPskStore(
+                            new StaticPskStore(remoteServer.getPskIdentity(), remoteServer.getPskKey()));
+                }
+                if (remoteServer.getSecurityModes().contains(SecurityMode.RPK)) {
+                    // TODO The preferred CipherSuite should not be necessary, if I only set the PSK (scandium bug ?)
+                    dtlsConnector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8);
+                    dtlsConnector.getConfig().setPrivateKey(remoteServer.getPrivateKey(), remoteServer.getPublicKey());
+                }
+
+                endpoint = new CoAPEndpoint(dtlsConnector, NetworkConfig.getStandard());
+            }
             break;
         default:
             throw new IllegalArgumentException("Leshan Client does not currently support the selected BindingMode "
                     + bindingMode);
         }
 
-        CoapServer coapServer = new CoapServer();
-
-        if (!remoteServer.getSecurityModes().contains(SecurityMode.NO_SEC)) {
-            DTLSConnector dtlsConnector = new DTLSConnector(localAddress);
-
-            if (remoteServer.getSecurityModes().contains(SecurityMode.PSK)) {
-                // TODO The preferred CipherSuite should not be necessary, if I only set the PSK (scandium bug ?)
-                dtlsConnector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_PSK_WITH_AES_128_CCM_8);
-                dtlsConnector.getConfig().setPskStore(
-                        new StaticPskStore(remoteServer.getPskIdentity(), remoteServer.getPskKey()));
-            }
-            if (remoteServer.getSecurityModes().contains(SecurityMode.RPK)) {
-                // TODO The preferred CipherSuite should not be necessary, if I only set the PSK (scandium bug ?)
-                dtlsConnector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8);
-                dtlsConnector.getConfig().setPrivateKey(remoteServer.getPrivateKey(), remoteServer.getPublicKey());
-            }
-
-            coapServer.addEndpoint(new CoAPEndpoint(dtlsConnector, NetworkConfig.getStandard()));
-        }
-
-        return new LeshanClient(localAddress, remoteServer.getServerAddress(), coapServer,
-                new ArrayList<LwM2mObjectEnabler>(objects), communicationRole);
+        return new LeshanClient(endpoint, remoteServer.getServerAddress(), new ArrayList<LwM2mObjectEnabler>(objects));
     }
 
 }

@@ -44,54 +44,26 @@ public class LeshanClient implements LwM2mClient {
     private final AtomicBoolean clientServerStarted = new AtomicBoolean(false);
     private final CaliforniumLwM2mClientRequestSender requestSender;
     private final List<LwM2mObjectEnabler> objectEnablers;
-    
-    public LeshanClient(final InetSocketAddress serverAddress, final List<LwM2mObjectEnabler> objectEnablers, final CommunicationRole role) {
-        this(new InetSocketAddress("0", 0), serverAddress, new CoapServer(), objectEnablers, role);
+
+    public LeshanClient(final InetSocketAddress serverAddress, final List<LwM2mObjectEnabler> objectEnablers) {
+        this(new CoAPEndpoint(new InetSocketAddress("0", 0)), serverAddress, objectEnablers);
     }
 
     public LeshanClient(final InetSocketAddress clientAddress, final InetSocketAddress serverAddress,
-    		final List<LwM2mObjectEnabler> objectEnablers, final CommunicationRole role) {
-        this(clientAddress, serverAddress, new CoapServer(), objectEnablers, role);
+            final List<LwM2mObjectEnabler> objectEnablers) {
+        this(new CoAPEndpoint(clientAddress), serverAddress, objectEnablers);
     }
 
-    public LeshanClient(InetSocketAddress clientAddress, final InetSocketAddress serverAddress,
-            final CoapServer serverLocal, final List<LwM2mObjectEnabler> objectEnablers, final CommunicationRole role) {
+    public LeshanClient(Endpoint endpoint, final InetSocketAddress serverAddress,
+            final List<LwM2mObjectEnabler> objectEnablers) {
 
-        Validate.notNull(clientAddress);
-        Validate.notNull(serverLocal);
+        Validate.notNull(endpoint);
         Validate.notNull(serverAddress);
         Validate.notNull(objectEnablers);
         Validate.notEmpty(objectEnablers);
 
-        Endpoint endpoint;
-        switch(role) {
-        case NODE:
-        	endpoint = new CoAPEndpoint(clientAddress);
-        	break;
-        case CLIENT:
-        	endpoint = TCPEndpoint.getNewTcpEndpointBuilder()
-        						  .setAsTcpClient()
-        						  .setRemoteAddress(serverAddress.getHostName())
-        						  .setPort(serverAddress.getPort())
-        						  .buildTcpEndpoint();
-        	clientAddress = serverAddress;//not sure what to do here, why client and server?
-        	break;
-        case SERVER://not sure if this case is possible
-        	endpoint = TCPEndpoint.getNewTcpEndpointBuilder()
-        						  .setAsTcpServer()
-        						  .setRemoteAddress(serverAddress.getHostName())
-        						  .setPort(serverAddress.getPort())
-        						  .buildTcpEndpoint();
-        	clientAddress = serverAddress;//not sure what to do here, why client and server?
-        	break;
-        default:
-        	throw new IllegalArgumentException("A communication ROLE must be passed in");
-        	
-        }
-          
-        serverLocal.addEndpoint(endpoint);
-
-        clientSideServer = serverLocal;
+        clientSideServer = new CoapServer();
+        clientSideServer.addEndpoint(endpoint);
 
         this.objectEnablers = new ArrayList<>(objectEnablers);
         for (final LwM2mObjectEnabler enabler : objectEnablers) {
@@ -104,8 +76,7 @@ public class LeshanClient implements LwM2mClient {
             clientSideServer.add(clientObject);
         }
 
-        requestSender = new CaliforniumLwM2mClientRequestSender(serverLocal.getEndpoint(clientAddress), serverAddress,
-                this);
+        requestSender = new CaliforniumLwM2mClientRequestSender(endpoint, serverAddress, this);
     }
 
     @Override
