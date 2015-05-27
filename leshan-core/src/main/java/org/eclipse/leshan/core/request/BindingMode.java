@@ -38,15 +38,16 @@ public enum BindingMode {
     /** UDP with Queue Mode and SMS */
     UQS,
 
-    /** TCP */
+    /** TCP Server */
     T,
 
-    /** TCP with Queue Mode */
+    /** TCP Server with Queue Mode */
     TQ,
 
-    /** TCP and SMS */
-    TS,
+    /** TCP Client */
+    C,
 
-    /** TCP with Queue Mode and SMS */
-    TQS
+    /** TCP Client with Queue Mode */
+    CQ
+
 }

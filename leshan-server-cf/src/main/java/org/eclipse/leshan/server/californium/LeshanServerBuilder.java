@@ -124,9 +124,11 @@ public class LeshanServerBuilder {
             break;
         case T:
         case TQ:
-        case TQS:
-        case TS:
             role = CommunicationRole.SERVER;
+            break;
+        case C:
+        case CQ:
+            role = CommunicationRole.CLIENT;
             break;
         default:
             throw new IllegalArgumentException("Leshan Server does not support the following Binding Mode "
