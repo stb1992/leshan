@@ -19,6 +19,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
+import org.eclipse.leshan.core.request.BindingMode;
 import org.eclipse.leshan.server.LwM2mServer;
 import org.eclipse.leshan.server.californium.impl.LeshanServer;
 import org.eclipse.leshan.server.client.ClientRegistry;
@@ -49,7 +50,7 @@ public class LeshanServerBuilder {
     private LwM2mModelProvider modelProvider;
     private InetSocketAddress localAddress;
     private InetSocketAddress localAddressSecure;
-    private CommunicationRole role;
+    private BindingMode bindingMode;
 
     public LeshanServerBuilder setLocalAddress(final String hostname, final int port) {
         this.localAddress = new InetSocketAddress(hostname, port);
@@ -90,10 +91,10 @@ public class LeshanServerBuilder {
         this.modelProvider = objectModelProvider;
         return this;
     }
-    
-    public LeshanServerBuilder setCommnuicationRole(final CommunicationRole role) {
-    	this.role = role;
-    	return this;
+
+    public LeshanServerBuilder setBindingMode(final BindingMode bindingMode) {
+        this.bindingMode = bindingMode;
+        return this;
     }
 
     public LeshanServer build() {
@@ -110,8 +111,26 @@ public class LeshanServerBuilder {
         if (modelProvider == null) {
             modelProvider = new StandardModelProvider();
         }
-        if (role == null) {
+        if (bindingMode == null) {
+            bindingMode = BindingMode.U;
+        }
+        CommunicationRole role;
+        switch (bindingMode) {
+        case U:
+        case UQ:
+        case UQS:
+        case US:
             role = CommunicationRole.NODE;
+            break;
+        case T:
+        case TQ:
+        case TQS:
+        case TS:
+            role = CommunicationRole.SERVER;
+            break;
+        default:
+            throw new IllegalArgumentException("Leshan Server does not support the following Binding Mode "
+                    + bindingMode);
         }
         return new LeshanServer(localAddress, localAddressSecure, clientRegistry, securityRegistry,
                 observationRegistry, modelProvider, role);

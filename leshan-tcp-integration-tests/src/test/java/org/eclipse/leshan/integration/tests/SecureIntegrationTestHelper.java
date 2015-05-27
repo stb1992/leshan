@@ -107,26 +107,20 @@ public class SecureIntegrationTestHelper extends IntegrationTestHelper {
 
     public void createPSKClient() {
         final LeshanClientBuilder builder = new LeshanClientBuilder();
-        builder.setServerAddress(getServerSecureAddress()).setPskSecurity(pskIdentity, pskKey)
-                .setBindingMode(BindingMode.T);
-
-        client = builder.build(2, 3);
+        client = builder.setServerAddress(getServerSecureAddress()).setPskSecurity(pskIdentity, pskKey)
+                .setBindingMode(BindingMode.T).build(2, 3);
     }
 
     public void createRPKClient() {
         final LeshanClientBuilder builder = new LeshanClientBuilder();
-        builder.setServerAddress(getServerSecureAddress()).setRpkSecurity(clientPrivateKey, clientPublicKey)
-                .setBindingMode(BindingMode.T);
-
-        client = builder.build(2, 3);
+        client = builder.setServerAddress(getServerSecureAddress()).setRpkSecurity(clientPrivateKey, clientPublicKey)
+                .setBindingMode(BindingMode.T).build(2, 3);
     }
 
     public void createPSKandRPKClient() {
         final LeshanClientBuilder builder = new LeshanClientBuilder();
-        builder.setServerAddress(getServerSecureAddress()).setPskSecurity(pskIdentity, pskKey)
-                .setRpkSecurity(clientPrivateKey, clientPublicKey).setBindingMode(BindingMode.T);
-
-        client = builder.build(2, 3);
+        client = builder.setServerAddress(getServerSecureAddress()).setPskSecurity(pskIdentity, pskKey)
+                .setRpkSecurity(clientPrivateKey, clientPublicKey).setBindingMode(BindingMode.T).build(2, 3);
     }
 
     public void createServerWithRPK() {
