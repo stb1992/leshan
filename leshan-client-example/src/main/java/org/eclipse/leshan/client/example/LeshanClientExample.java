@@ -33,7 +33,6 @@ import org.eclipse.leshan.client.LwM2mClient;
 import org.eclipse.leshan.client.californium.LeshanClientBuilder;
 import org.eclipse.leshan.client.resource.BaseInstanceEnabler;
 import org.eclipse.leshan.client.resource.ObjectsInitializer;
-import org.eclipse.leshan.client.server.Server;
 import org.eclipse.leshan.core.node.LwM2mResource;
 import org.eclipse.leshan.core.node.Value;
 import org.eclipse.leshan.core.request.BindingMode;
@@ -76,12 +75,9 @@ public class LeshanClientExample {
         final InetSocketAddress serverAddress = new InetSocketAddress(serverHostName, serverPort);
 
         final LeshanClientBuilder builder = new LeshanClientBuilder();
-        builder.setObjectsInitializer(initializer);
-        builder.setLocalAddress(clientAddress);
-        builder.setRemoteServer(Server.createNoSecServer(serverAddress));
-        builder.setBindingMode(BindingMode.T);
 
-        final LwM2mClient client = builder.build();
+        final LwM2mClient client = builder.setObjectsInitializer(initializer).setLocalAddress(clientAddress)
+                .setServerAddress(serverAddress).setBindingMode(BindingMode.T).build();
 
         // Start the client
         client.start();

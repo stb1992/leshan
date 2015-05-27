@@ -32,24 +32,10 @@ import java.security.spec.ECPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.KeySpec;
-import java.util.ArrayList;
-import java.util.List;
 
 import javax.xml.bind.DatatypeConverter;
 
-import org.eclipse.californium.core.CoapServer;
-import org.eclipse.californium.core.network.CoAPEndpoint;
-import org.eclipse.californium.core.network.config.NetworkConfig;
-import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
-import org.eclipse.californium.scandium.DTLSConnector;
-import org.eclipse.californium.scandium.dtls.cipher.CipherSuite;
-import org.eclipse.californium.scandium.dtls.pskstore.StaticPskStore;
-import org.eclipse.leshan.client.californium.LeshanClient;
 import org.eclipse.leshan.client.californium.LeshanClientBuilder;
-import org.eclipse.leshan.client.resource.LwM2mObjectEnabler;
-import org.eclipse.leshan.client.resource.ObjectEnabler;
-import org.eclipse.leshan.client.resource.ObjectsInitializer;
-import org.eclipse.leshan.client.server.Server;
 import org.eclipse.leshan.server.californium.LeshanServerBuilder;
 import org.eclipse.leshan.server.impl.SecurityRegistryImpl;
 
@@ -120,22 +106,22 @@ public class SecureIntegrationTestHelper extends IntegrationTestHelper {
 
     public void createPSKClient() {
         final LeshanClientBuilder builder = new LeshanClientBuilder();
-        builder.setRemoteServer(Server.createPskServer(getServerSecureAddress(), pskIdentity, pskKey));
+        builder.setServerAddress(getServerSecureAddress()).setPskSecurity(pskIdentity, pskKey);
 
         client = builder.build(2, 3);
     }
 
     public void createRPKClient() {
         final LeshanClientBuilder builder = new LeshanClientBuilder();
-        builder.setRemoteServer(Server.createRpkServer(getServerSecureAddress(), clientPrivateKey, clientPublicKey));
+        builder.setServerAddress(getServerSecureAddress()).setRpkSecurity(clientPrivateKey, clientPublicKey);
 
         client = builder.build(2, 3);
     }
 
     public void createPSKandRPKClient() {
         final LeshanClientBuilder builder = new LeshanClientBuilder();
-        builder.setRemoteServer(Server.createPskAndRpkServer(getServerSecureAddress(), pskIdentity, pskKey,
-                clientPrivateKey, clientPublicKey));
+        builder.setServerAddress(getServerSecureAddress()).setPskSecurity(pskIdentity, pskKey)
+                .setRpkSecurity(clientPrivateKey, clientPublicKey);
 
         client = builder.build(2, 3);
     }

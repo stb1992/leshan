@@ -29,7 +29,6 @@ import org.eclipse.leshan.client.californium.LeshanClientBuilder;
 import org.eclipse.leshan.client.resource.LwM2mObjectEnabler;
 import org.eclipse.leshan.client.resource.ObjectEnabler;
 import org.eclipse.leshan.client.resource.ObjectsInitializer;
-import org.eclipse.leshan.client.server.Server;
 import org.eclipse.leshan.core.request.BindingMode;
 import org.eclipse.leshan.server.LwM2mServer;
 import org.eclipse.leshan.server.californium.LeshanServerBuilder;
@@ -51,7 +50,7 @@ public class IntegrationTestHelper {
 
     public void createClient() {
         final LeshanClientBuilder builder = new LeshanClientBuilder();
-        builder.setRemoteServer(Server.createNoSecServer(getServerAddress()));
+        builder.setServerAddress(getServerAddress());
 
         client = builder.build(2, 3);
     }

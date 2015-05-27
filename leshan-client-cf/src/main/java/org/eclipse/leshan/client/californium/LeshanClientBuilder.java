@@ -17,15 +17,17 @@
 package org.eclipse.leshan.client.californium;
 
 import java.net.InetSocketAddress;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-import org.eclipse.californium.core.CoapServer;
 import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.network.tcp.TCPEndpoint;
-import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
 import org.eclipse.californium.scandium.DTLSConnector;
 import org.eclipse.californium.scandium.dtls.cipher.CipherSuite;
 import org.eclipse.californium.scandium.dtls.pskstore.StaticPskStore;
@@ -33,7 +35,6 @@ import org.eclipse.leshan.client.LwM2mClient;
 import org.eclipse.leshan.client.resource.LwM2mObjectEnabler;
 import org.eclipse.leshan.client.resource.ObjectEnabler;
 import org.eclipse.leshan.client.resource.ObjectsInitializer;
-import org.eclipse.leshan.client.server.Server;
 import org.eclipse.leshan.core.model.SecurityMode;
 import org.eclipse.leshan.core.request.BindingMode;
 import org.eclipse.leshan.util.Validate;
@@ -53,27 +54,56 @@ public class LeshanClientBuilder {
     /** TCP port for TLS */
     public static final int PORT_TLS = 443;
 
-    private Server remoteServer;
     private BindingMode bindingMode;
     private ObjectsInitializer initializer;
     private InetSocketAddress localAddress;
+    private InetSocketAddress serverAddress;
+    private final Set<SecurityMode> securityModes = new HashSet<SecurityMode>();
+    private String pskIdentity;
+    private byte[] pskKey;
+    private PrivateKey privateKey;
+    private PublicKey publicKey;
 
     /**
      * Set the remote LW-M2M provider the client should connect to.
      * 
-     * @param remoteServer The particular LW-M2M provider as well as any required authentication to connect to it. If
-     *        none is provided localhost:5683 will be used with no-security.
-     * @see org.eclipse.leshan.client.server.Server
+     * @param remoteServer The particular LW-M2M provider to connect to it. If none is provided localhost:5683.
      * @return
      */
-    public LeshanClientBuilder setRemoteServer(Server remoteServer) {
-        Validate.notNull(remoteServer);
+    public LeshanClientBuilder setServerAddress(InetSocketAddress serverAddress) {
+        Validate.notNull(serverAddress);
 
-        if (remoteServer.getSecurityModes().contains(SecurityMode.X509))
-            throw new IllegalArgumentException("Leshan Client does not currently support the selected SecurityMode "
-                    + remoteServer.getSecurityModes());
+        this.serverAddress = serverAddress;
 
-        this.remoteServer = remoteServer;
+        return this;
+    }
+
+    /**
+     * Add PSK authentication to the LW-M2M server.
+     * 
+     * @param pskIdentity the PSK Identity to use.
+     * @param pskKey the PSK key to use.
+     * @return
+     */
+    public LeshanClientBuilder setPskSecurity(String pskIdentity, byte[] pskKey) {
+        this.securityModes.add(SecurityMode.PSK);
+        this.pskIdentity = pskIdentity;
+        this.pskKey = pskKey;
+
+        return this;
+    }
+
+    /**
+     * Add RPK authentication to the LW-M2M server.
+     * 
+     * @param clientPrivateKey the Private RPK key to use.
+     * @param clientPublicKey thePublic RPK key to use.
+     * @return
+     */
+    public LeshanClientBuilder setRpkSecurity(PrivateKey clientPrivateKey, PublicKey clientPublicKey) {
+        this.securityModes.add(SecurityMode.RPK);
+        this.privateKey = clientPrivateKey;
+        this.publicKey = clientPublicKey;
 
         return this;
     }
@@ -82,7 +112,7 @@ public class LeshanClientBuilder {
      * Set the binding mode which the client should use to connect to the LW-M2M provider.
      * 
      * @param bindingMode The particular binding mode as defined in the LW-M2M specification, section 5.2.1.1. If none
-     *        is provided 'U' shall be used.
+     *        is provided 'U' (UDP, no Queuing Mode, no SMS) shall be used.
      * @return
      */
     public LeshanClientBuilder setBindingMode(BindingMode bindingMode) {
@@ -131,12 +161,14 @@ public class LeshanClientBuilder {
     public LwM2mClient build(int... objectId) {
         if (localAddress == null)
             localAddress = new InetSocketAddress("0", 0);
-        if (remoteServer == null)
-            remoteServer = Server.createNoSecServer(new InetSocketAddress("0", PORT));
+        if (serverAddress == null)
+            serverAddress = new InetSocketAddress("0", PORT);
         if (bindingMode == null)
             bindingMode = BindingMode.U;
         if (initializer == null)
             initializer = new ObjectsInitializer();
+        if (securityModes.isEmpty())
+            securityModes.add(SecurityMode.NO_SEC);
         if (objectId == null)
             objectId = new int[] {};
 
@@ -148,25 +180,23 @@ public class LeshanClientBuilder {
         switch (bindingMode) {
         case T:
             endpoint = TCPEndpoint.getNewTcpEndpointBuilder().setAsTcpClient()
-                    .setRemoteAddress(remoteServer.getServerAddress().getHostName())
-                    .setPort(remoteServer.getServerAddress().getPort()).buildTcpEndpoint();
+                    .setRemoteAddress(serverAddress.getHostName()).setPort(serverAddress.getPort()).buildTcpEndpoint();
             break;
         case U:
-            if (remoteServer.getSecurityModes().contains(SecurityMode.NO_SEC)) {
+            if (securityModes.contains(SecurityMode.NO_SEC)) {
                 endpoint = new CoAPEndpoint(localAddress);
             } else {
                 DTLSConnector dtlsConnector = new DTLSConnector(localAddress);
 
-                if (remoteServer.getSecurityModes().contains(SecurityMode.PSK)) {
+                if (securityModes.contains(SecurityMode.PSK)) {
                     // TODO The preferred CipherSuite should not be necessary, if I only set the PSK (scandium bug ?)
                     dtlsConnector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_PSK_WITH_AES_128_CCM_8);
-                    dtlsConnector.getConfig().setPskStore(
-                            new StaticPskStore(remoteServer.getPskIdentity(), remoteServer.getPskKey()));
+                    dtlsConnector.getConfig().setPskStore(new StaticPskStore(pskIdentity, pskKey));
                 }
-                if (remoteServer.getSecurityModes().contains(SecurityMode.RPK)) {
+                if (securityModes.contains(SecurityMode.RPK)) {
                     // TODO The preferred CipherSuite should not be necessary, if I only set the PSK (scandium bug ?)
                     dtlsConnector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8);
-                    dtlsConnector.getConfig().setPrivateKey(remoteServer.getPrivateKey(), remoteServer.getPublicKey());
+                    dtlsConnector.getConfig().setPrivateKey(privateKey, publicKey);
                 }
 
                 endpoint = new CoAPEndpoint(dtlsConnector, NetworkConfig.getStandard());
@@ -177,7 +207,7 @@ public class LeshanClientBuilder {
                     + bindingMode);
         }
 
-        return new LeshanClient(endpoint, remoteServer.getServerAddress(), new ArrayList<LwM2mObjectEnabler>(objects));
+        return new LeshanClient(endpoint, serverAddress, new ArrayList<LwM2mObjectEnabler>(objects));
     }
 
 }
