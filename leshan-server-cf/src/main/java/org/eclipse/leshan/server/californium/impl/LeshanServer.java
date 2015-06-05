@@ -25,7 +25,8 @@ import org.eclipse.californium.core.CoapServer;
 import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.network.tcp.TCPEndpoint;
-import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
+import org.eclipse.californium.core.observe.ObserveManager;
+import org.eclipse.californium.elements.config.ConnectionConfig.CommunicationRole;
 import org.eclipse.californium.scandium.DTLSConnector;
 import org.eclipse.californium.scandium.dtls.cipher.CipherSuite;
 import org.eclipse.leshan.core.request.DownlinkRequest;
@@ -81,7 +82,7 @@ public class LeshanServer implements LwM2mServer {
 
     /**
      * Initialize a server which will bind to the specified address and port.
-     *
+     * 
      * @param localAddress the address to bind the CoAP server.
      * @param localAddressSecure the address to bind the CoAP server for DTLS connection.
      * @param privateKey for RPK authentication mode
@@ -89,8 +90,8 @@ public class LeshanServer implements LwM2mServer {
      */
     public LeshanServer(final InetSocketAddress localAddress, final InetSocketAddress localAddressSecure,
             final ClientRegistry clientRegistry, final SecurityRegistry securityRegistry,
-            final ObservationRegistry observationRegistry, final LwM2mModelProvider modelProvider, 
-            final CommunicationRole role) {
+            final ObservationRegistry observationRegistry, final LwM2mModelProvider modelProvider,
+            final CommunicationRole role, final ObserveManager observeManager) {
         Validate.notNull(localAddress, "IP address cannot be null");
         Validate.notNull(localAddressSecure, "Secure IP address cannot be null");
         Validate.notNull(clientRegistry, "clientRegistry cannot be null");
@@ -124,14 +125,14 @@ public class LeshanServer implements LwM2mServer {
         });
 
         // default endpoint
-        coapServer = new CoapServer();
+        coapServer = observeManager != null ? new CoapServer(observeManager) : new CoapServer();
         final Set<Endpoint> endpoints = new HashSet<>();
-        
+
         Endpoint endpoint;
-        switch(role) {
+        switch (role) {
         case NODE:
-        	endpoint = new CoAPEndpoint(localAddress);
-        	// secure endpoint
+            endpoint = new CoAPEndpoint(localAddress);
+            // secure endpoint
             final DTLSConnector connector = new DTLSConnector(localAddressSecure);
             connector.getConfig().setPskStore(new LwM2mPskStore(this.securityRegistry, this.clientRegistry));
             final PrivateKey privateKey = this.securityRegistry.getServerPrivateKey();
@@ -148,24 +149,18 @@ public class LeshanServer implements LwM2mServer {
             final Endpoint secureEndpoint = new SecureEndpoint(connector);
             coapServer.addEndpoint(secureEndpoint);
             endpoints.add(secureEndpoint);
-        	break;
+            break;
         case CLIENT:
-        	endpoint = TCPEndpoint.getNewTcpEndpointBuilder()
-			  					  .setAsTcpClient()
-			  					  .setRemoteAddress(localAddress.getHostName())
-			  					  .setPort(localAddress.getPort())
-			  					  .buildTcpEndpoint();
-        	break;
-        case SERVER://not sure if this case is possible
-        	endpoint = TCPEndpoint.getNewTcpEndpointBuilder()
-			  					  .setAsTcpServer()
-			  					  .setRemoteAddress(localAddress.getHostName())
-			  					  .setPort(localAddress.getPort())
-			  					  .buildTcpEndpoint();
-        	break;
+            endpoint = TCPEndpoint.getNewTcpEndpointBuilder().setAsTcpClient()
+                    .setRemoteAddress(localAddress.getHostName()).setPort(localAddress.getPort()).buildTcpEndpoint();
+            break;
+        case SERVER:// not sure if this case is possible
+            endpoint = TCPEndpoint.getNewTcpEndpointBuilder().setAsTcpServer()
+                    .setRemoteAddress(localAddress.getHostName()).setPort(localAddress.getPort()).buildTcpEndpoint();
+            break;
         default:
-        	throw new IllegalArgumentException("A communication ROLE must be passed in");
-        	
+            throw new IllegalArgumentException("A communication ROLE must be passed in");
+
         }
         coapServer.addEndpoint(endpoint);
 
@@ -221,7 +216,7 @@ public class LeshanServer implements LwM2mServer {
     }
 
     @Override
-	public void destroy() {
+    public void destroy() {
         // Destroy server
         coapServer.destroy();
 

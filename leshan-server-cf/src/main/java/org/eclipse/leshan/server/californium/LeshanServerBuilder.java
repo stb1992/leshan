@@ -18,7 +18,8 @@ package org.eclipse.leshan.server.californium;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
-import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
+import org.eclipse.californium.core.observe.ObserveManager;
+import org.eclipse.californium.elements.config.ConnectionConfig.CommunicationRole;
 import org.eclipse.leshan.core.request.BindingMode;
 import org.eclipse.leshan.server.LwM2mServer;
 import org.eclipse.leshan.server.californium.impl.LeshanServer;
@@ -51,6 +52,8 @@ public class LeshanServerBuilder {
     private InetSocketAddress localAddress;
     private InetSocketAddress localAddressSecure;
     private BindingMode bindingMode;
+
+    private ObserveManager observeManager;
 
     public LeshanServerBuilder setLocalAddress(final String hostname, final int port) {
         this.localAddress = new InetSocketAddress(hostname, port);
@@ -97,6 +100,11 @@ public class LeshanServerBuilder {
         return this;
     }
 
+    public LeshanServerBuilder setObserveManager(ObserveManager observeManager) {
+        this.observeManager = observeManager;
+        return this;
+    }
+
     public LeshanServer build() {
         if (localAddress == null)
             localAddress = new InetSocketAddress((InetAddress) null, PORT);
@@ -135,6 +143,6 @@ public class LeshanServerBuilder {
                     + bindingMode);
         }
         return new LeshanServer(localAddress, localAddressSecure, clientRegistry, securityRegistry,
-                observationRegistry, modelProvider, role);
+                observationRegistry, modelProvider, role, observeManager);
     }
 }
