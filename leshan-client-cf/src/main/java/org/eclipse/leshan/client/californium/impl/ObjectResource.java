@@ -288,13 +288,11 @@ public class ObjectResource extends CoapResource implements LinkFormattable, Not
 
     public void removeObserverRelations() {
         synchronized (observeRelations) {
-            System.err.println("Removing " + observeRelations.getSize() + " observe relations from Resource " + getName());
             for (final Iterator<ObserveRelation> iter = observeRelations.iterator(); iter.hasNext();) {
                 final ObserveRelation relation = iter.next();
                 iter.remove();
                 super.removeObserveRelation(relation);
             }
-            System.err.println("Done.");
         }
     }
 
