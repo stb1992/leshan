@@ -28,6 +28,8 @@ import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.network.tcp.TCPEndpoint;
+import org.eclipse.californium.elements.config.ConnectionConfig;
+import org.eclipse.californium.elements.config.TCPConnectionConfig;
 import org.eclipse.californium.scandium.DTLSConnector;
 import org.eclipse.californium.scandium.dtls.cipher.CipherSuite;
 import org.eclipse.californium.scandium.dtls.pskstore.StaticPskStore;
@@ -64,13 +66,15 @@ public class LeshanClientBuilder {
     private PrivateKey privateKey;
     private PublicKey publicKey;
 
+	private ConnectionConfig connectionConfig;
+
     /**
      * Set the remote LW-M2M provider the client should connect to.
      * 
      * @param remoteServer The particular LW-M2M provider to connect to it. If none is provided localhost:5683.
      * @return
      */
-    public LeshanClientBuilder setServerAddress(InetSocketAddress serverAddress) {
+    public LeshanClientBuilder setServerAddress(final InetSocketAddress serverAddress) {
         Validate.notNull(serverAddress);
 
         this.serverAddress = serverAddress;
@@ -85,7 +89,7 @@ public class LeshanClientBuilder {
      * @param pskKey the PSK key to use.
      * @return
      */
-    public LeshanClientBuilder setPskSecurity(String pskIdentity, byte[] pskKey) {
+    public LeshanClientBuilder setPskSecurity(final String pskIdentity, final byte[] pskKey) {
         this.securityModes.add(SecurityMode.PSK);
         this.pskIdentity = pskIdentity;
         this.pskKey = pskKey;
@@ -100,7 +104,7 @@ public class LeshanClientBuilder {
      * @param clientPublicKey thePublic RPK key to use.
      * @return
      */
-    public LeshanClientBuilder setRpkSecurity(PrivateKey clientPrivateKey, PublicKey clientPublicKey) {
+    public LeshanClientBuilder setRpkSecurity(final PrivateKey clientPrivateKey, final PublicKey clientPublicKey) {
         this.securityModes.add(SecurityMode.RPK);
         this.privateKey = clientPrivateKey;
         this.publicKey = clientPublicKey;
@@ -115,7 +119,7 @@ public class LeshanClientBuilder {
      *        is provided 'U' (UDP, no Queuing Mode, no SMS) shall be used.
      * @return
      */
-    public LeshanClientBuilder setBindingMode(BindingMode bindingMode) {
+    public LeshanClientBuilder setBindingMode(final BindingMode bindingMode) {
         Validate.notNull(bindingMode);
         this.bindingMode = bindingMode;
 
@@ -129,7 +133,7 @@ public class LeshanClientBuilder {
      *        derived from the OMA LW-M2M JSON schema will be used.
      * @return
      */
-    public LeshanClientBuilder setObjectsInitializer(ObjectsInitializer initializer) {
+    public LeshanClientBuilder setObjectsInitializer(final ObjectsInitializer initializer) {
         Validate.notNull(initializer);
         this.initializer = initializer;
 
@@ -143,10 +147,21 @@ public class LeshanClientBuilder {
      *        used.
      * @return
      */
-    public LeshanClientBuilder setLocalAddress(InetSocketAddress localAddress) {
+    public LeshanClientBuilder setLocalAddress(final InetSocketAddress localAddress) {
         Validate.notNull(localAddress);
         this.localAddress = localAddress;
 
+        return this;
+    }
+    
+    /**
+     * set a full connection configuration File instead of passing only the local address
+     * @param connectionConfig
+     * @return
+     */
+    public LeshanClientBuilder setConnectionConfig(final ConnectionConfig connectionConfig) {
+        Validate.notNull(connectionConfig);
+        this.connectionConfig = connectionConfig;
         return this;
     }
 
@@ -172,21 +187,20 @@ public class LeshanClientBuilder {
         if (objectId == null)
             objectId = new int[] {};
 
-        List<ObjectEnabler> objects = objectId.length == 0 ? initializer.createMandatory() : initializer
+        final List<ObjectEnabler> objects = objectId.length == 0 ? initializer.createMandatory() : initializer
                 .create(objectId);
 
         Endpoint endpoint;
 
         switch (bindingMode) {
         case T:
-            endpoint = TCPEndpoint.getNewTcpEndpointBuilder().setAsTcpClient()
-                    .setRemoteAddress(serverAddress.getHostName()).setPort(serverAddress.getPort()).buildTcpEndpoint();
+            endpoint = new TCPEndpoint((TCPConnectionConfig)connectionConfig);
             break;
         case U:
             if (securityModes.contains(SecurityMode.NO_SEC)) {
                 endpoint = new CoAPEndpoint(localAddress);
             } else {
-                DTLSConnector dtlsConnector = new DTLSConnector(localAddress);
+                final DTLSConnector dtlsConnector = new DTLSConnector(localAddress);
 
                 if (securityModes.contains(SecurityMode.PSK)) {
                     // TODO The preferred CipherSuite should not be necessary, if I only set the PSK (scandium bug ?)

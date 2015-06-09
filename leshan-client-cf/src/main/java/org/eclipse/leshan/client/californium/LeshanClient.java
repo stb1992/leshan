@@ -23,8 +23,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.eclipse.californium.core.CoapServer;
 import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
-import org.eclipse.californium.core.network.tcp.TCPEndpoint;
-import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
 import org.eclipse.leshan.client.LwM2mClient;
 import org.eclipse.leshan.client.californium.impl.CaliforniumLwM2mClientRequestSender;
 import org.eclipse.leshan.client.californium.impl.ObjectResource;
@@ -54,7 +52,7 @@ public class LeshanClient implements LwM2mClient {
         this(new CoAPEndpoint(clientAddress), serverAddress, objectEnablers);
     }
 
-    public LeshanClient(Endpoint endpoint, final InetSocketAddress serverAddress,
+    public LeshanClient(final Endpoint endpoint, final InetSocketAddress serverAddress,
             final List<LwM2mObjectEnabler> objectEnablers) {
 
         Validate.notNull(endpoint);
