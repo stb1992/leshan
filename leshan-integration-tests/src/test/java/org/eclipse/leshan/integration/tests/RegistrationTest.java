@@ -27,7 +27,6 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
 import org.eclipse.leshan.LinkObject;
 import org.eclipse.leshan.ResponseCode;
 import org.eclipse.leshan.client.californium.LeshanClient;

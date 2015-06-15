@@ -18,7 +18,8 @@ package org.eclipse.leshan.server.californium;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
-import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
+import org.eclipse.californium.elements.config.ConnectionConfig;
+import org.eclipse.californium.elements.config.ConnectionConfig.CommunicationRole;
 import org.eclipse.leshan.core.request.BindingMode;
 import org.eclipse.leshan.server.LwM2mServer;
 import org.eclipse.leshan.server.californium.impl.LeshanServer;
@@ -30,6 +31,7 @@ import org.eclipse.leshan.server.model.LwM2mModelProvider;
 import org.eclipse.leshan.server.model.StandardModelProvider;
 import org.eclipse.leshan.server.observation.ObservationRegistry;
 import org.eclipse.leshan.server.security.SecurityRegistry;
+import org.eclipse.leshan.util.Validate;
 
 /**
  * Class helping you to build and configure a Californium based Leshan Lightweight M2M server. Usage: create it, call
@@ -51,6 +53,8 @@ public class LeshanServerBuilder {
     private InetSocketAddress localAddress;
     private InetSocketAddress localAddressSecure;
     private BindingMode bindingMode;
+
+	private ConnectionConfig connectionConfig;
 
     public LeshanServerBuilder setLocalAddress(final String hostname, final int port) {
         this.localAddress = new InetSocketAddress(hostname, port);
@@ -96,6 +100,12 @@ public class LeshanServerBuilder {
         this.bindingMode = bindingMode;
         return this;
     }
+    
+    public LeshanServerBuilder setConnectionConfig(final ConnectionConfig connectionConfig) {
+        Validate.notNull(connectionConfig);
+        this.connectionConfig = connectionConfig;
+        return this;
+    }
 
     public LeshanServer build() {
         if (localAddress == null)
@@ -135,6 +145,6 @@ public class LeshanServerBuilder {
                     + bindingMode);
         }
         return new LeshanServer(localAddress, localAddressSecure, clientRegistry, securityRegistry,
-                observationRegistry, modelProvider, role);
+                observationRegistry, modelProvider, role, connectionConfig);
     }
 }

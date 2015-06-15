@@ -25,7 +25,9 @@ import org.eclipse.californium.core.CoapServer;
 import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.network.tcp.TCPEndpoint;
-import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
+import org.eclipse.californium.elements.config.ConnectionConfig;
+import org.eclipse.californium.elements.config.ConnectionConfig.CommunicationRole;
+import org.eclipse.californium.elements.config.TCPConnectionConfig;
 import org.eclipse.californium.scandium.DTLSConnector;
 import org.eclipse.californium.scandium.dtls.cipher.CipherSuite;
 import org.eclipse.leshan.core.request.DownlinkRequest;
@@ -81,6 +83,7 @@ public class LeshanServer implements LwM2mServer {
 
     /**
      * Initialize a server which will bind to the specified address and port.
+     * TODO: this was modified to accept the Config object, this is pretty ugly code, and needs to be ratified
      *
      * @param localAddress the address to bind the CoAP server.
      * @param localAddressSecure the address to bind the CoAP server for DTLS connection.
@@ -90,14 +93,18 @@ public class LeshanServer implements LwM2mServer {
     public LeshanServer(final InetSocketAddress localAddress, final InetSocketAddress localAddressSecure,
             final ClientRegistry clientRegistry, final SecurityRegistry securityRegistry,
             final ObservationRegistry observationRegistry, final LwM2mModelProvider modelProvider, 
-            final CommunicationRole role) {
-        Validate.notNull(localAddress, "IP address cannot be null");
-        Validate.notNull(localAddressSecure, "Secure IP address cannot be null");
+            CommunicationRole role, final ConnectionConfig config) {
+    	if(config == null) {
+    		Validate.notNull(localAddress, "IP address cannot be null");
+    		Validate.notNull(localAddressSecure, "Secure IP address cannot be null");
+    		Validate.notNull(role, "role cannot be null");
+    	}
+    	role = config.getCommunicationRole();
+
         Validate.notNull(clientRegistry, "clientRegistry cannot be null");
         Validate.notNull(securityRegistry, "securityRegistry cannot be null");
         Validate.notNull(observationRegistry, "observationRegistry cannot be null");
         Validate.notNull(modelProvider, "modelProvider cannot be null");
-        Validate.notNull(role, "role cannot be null");
 
         // Init registries
         this.clientRegistry = clientRegistry;
@@ -149,19 +156,9 @@ public class LeshanServer implements LwM2mServer {
             coapServer.addEndpoint(secureEndpoint);
             endpoints.add(secureEndpoint);
         	break;
-        case CLIENT:
-        	endpoint = TCPEndpoint.getNewTcpEndpointBuilder()
-			  					  .setAsTcpClient()
-			  					  .setRemoteAddress(localAddress.getHostName())
-			  					  .setPort(localAddress.getPort())
-			  					  .buildTcpEndpoint();
-        	break;
-        case SERVER://not sure if this case is possible
-        	endpoint = TCPEndpoint.getNewTcpEndpointBuilder()
-			  					  .setAsTcpServer()
-			  					  .setRemoteAddress(localAddress.getHostName())
-			  					  .setPort(localAddress.getPort())
-			  					  .buildTcpEndpoint();
+        case CLIENT:///not sure if this case is possible
+        case SERVER:
+        	endpoint = new TCPEndpoint((TCPConnectionConfig)config);
         	break;
         default:
         	throw new IllegalArgumentException("A communication ROLE must be passed in");

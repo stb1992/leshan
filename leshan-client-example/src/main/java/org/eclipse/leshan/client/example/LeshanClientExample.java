@@ -19,6 +19,8 @@
 package org.eclipse.leshan.client.example;
 
 import java.net.InetSocketAddress;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -27,7 +29,13 @@ import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
+import javax.net.ssl.SSLException;
+
+import org.eclipse.californium.elements.tcp.ConnectionInfo;
+import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 import org.eclipse.leshan.ResponseCode;
 import org.eclipse.leshan.client.LwM2mClient;
 import org.eclipse.leshan.client.californium.LeshanClientBuilder;
@@ -50,9 +58,12 @@ import org.eclipse.leshan.core.response.ValueResponse;
  */
 public class LeshanClientExample {
     private String registrationID;
+    
+    private static final ReentrantLock lock = new ReentrantLock();
+    private static  final Condition tlsCompleted = lock.newCondition();
 
     public static void main(String[] args) {
-    	args = new String[]{"beta-devices.zatar.com", "5683"};
+    	args = new String[]{"localhost", "5684"};
         if (args.length != 4 && args.length != 2) {
             System.out
                     .println("Usage:\njava -jar target/leshan-client-example-*-SNAPSHOT-jar-with-dependencies.jar [ClientIP] [ClientPort] ServerIP ServerPort");
@@ -77,11 +88,29 @@ public class LeshanClientExample {
 
         final LeshanClientBuilder builder = new LeshanClientBuilder();
 
+        final TLSClientConnectionConfig config = new TLSClientConnectionConfig("localhost", 5684);
+        try {
+        	config.setConnectionListener(new ConnectionListener());
+			config.secure();
+		} catch (KeyManagementException | SSLException | NoSuchAlgorithmException e) {
+			System.err.println("Could not setup a secure connection");
+			e.printStackTrace();
+		}
         final LwM2mClient client = builder.setObjectsInitializer(initializer).setLocalAddress(clientAddress)
-                .setServerAddress(serverAddress).setBindingMode(BindingMode.T).build();
+                .setServerAddress(serverAddress).setBindingMode(BindingMode.T).setConnectionConfig(config).build();
 
         // Start the client
         client.start();
+
+        lock.lock();
+        try {
+        	tlsCompleted.await();
+        } catch (final InterruptedException e) {
+			e.printStackTrace();
+		}
+        finally {
+        	lock.unlock();
+        }
 
         // Register to the server provided
         final String endpointIdentifier = UUID.randomUUID().toString();
@@ -111,6 +140,29 @@ public class LeshanClientExample {
                 }
             }
         });
+    }
+    
+    public static class ConnectionListener implements ConnectionStateListener {
+
+		@Override
+		public void stateChange(final ConnectionInfo info) {
+			switch(info.getConnectionState()) {
+			case TLS_HANDSHAKE_FAILED:
+			case CONNECTED_SECURE:
+				lock.lock();
+				try {
+					tlsCompleted.signalAll();
+				}
+				finally {
+					lock.unlock();
+				}
+				break;
+			default:
+				System.out.println("not doing anything for state " + info.getConnectionState());
+			}
+			
+		}
+    	
     }
 
     public static class Device extends BaseInstanceEnabler {

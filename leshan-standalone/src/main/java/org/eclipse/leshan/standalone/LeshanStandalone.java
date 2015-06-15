@@ -30,6 +30,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.KeySpec;
 
+import javax.net.ssl.SSLException;
 import javax.xml.bind.DatatypeConverter;
 
 import org.eclipse.jetty.server.Server;
@@ -43,6 +44,7 @@ import org.eclipse.leshan.standalone.servlet.ClientServlet;
 import org.eclipse.leshan.standalone.servlet.EventServlet;
 import org.eclipse.leshan.standalone.servlet.ObjectSpecServlet;
 import org.eclipse.leshan.standalone.servlet.SecurityServlet;
+import org.eclipse.leshan.standalone.servlet.SimpleUDPConnectionConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +102,15 @@ public class LeshanStandalone {
         } catch (InvalidKeySpecException | NoSuchAlgorithmException | InvalidParameterSpecException e) {
             LOG.warn("Unable to load RPK.", e);
         }
-
+        final TLSServerConnectionConfig config = new TLSServerConnectionConfig("localhost", 5684);
+        final SimpleUDPConnectionConfig configUDP = new SimpleUDPConnectionConfig("localhost", 5683);
+		 final String keystore = "/Users/simonlemoy/Workspace_github/tls_tmp/zatar-server-1.ks";
+		 try {
+			config.secure("TLS", "password", new String[]{keystore}, "TLSv1.1", "TLSv1.2");
+		} catch (SSLException | NoSuchAlgorithmException e1) {
+			LOG.error("could not setup a secure connection: ", e1);
+		}
+        builder.setConnectionConfig(config);
         lwServer = builder.build();
         lwServer.start();
 

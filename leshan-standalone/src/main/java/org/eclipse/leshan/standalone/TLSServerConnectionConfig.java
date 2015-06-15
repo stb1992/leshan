@@ -1,4 +1,4 @@
-package org.eclipse.leshan.client.californium.impl;
+package org.eclipse.leshan.standalone;
 
 import java.io.FileInputStream;
 import java.io.IOException;
