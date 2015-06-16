@@ -230,6 +230,7 @@ public class CaliforniumLwM2mClientRequestSender implements LwM2mClientRequestSe
                     if (exception.get() != null) {
                         throw exception.get();
                     } else {
+                        // onResponse(new Response(ResponseCode.GATEWAY_TIMEOUT));
                         throw new RequestTimeoutException(coapRequest.getURI(), timeout);
                     }
                 }
