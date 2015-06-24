@@ -12,7 +12,6 @@ public class LeshanUDPConnnectionConfig extends UDPConnectionConfig{
 	public LeshanUDPConnnectionConfig(final InetSocketAddress localAddress, final InetSocketAddress localAddressSecure) {
 		this.localAddress = localAddress;
 		this.localAddressSecure = localAddressSecure;
-		// TODO Auto-generated constructor stub
 	}
 
 	@Override
