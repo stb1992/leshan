@@ -17,6 +17,7 @@ package org.eclipse.leshan.server.californium.impl;
 
 import java.net.InetSocketAddress;
 import java.security.PublicKey;
+import java.util.EnumSet;
 import java.util.List;
 
 import org.eclipse.californium.core.CoapResource;
@@ -65,7 +66,7 @@ public class RegisterResource extends CoapResource {
 
     private final RegistrationHandler registrationHandler;
 
-    public RegisterResource(RegistrationHandler registrationHandler) {
+    public RegisterResource(final RegistrationHandler registrationHandler) {
         super(RESOURCE_NAME);
 
         this.registrationHandler = registrationHandler;
@@ -73,10 +74,10 @@ public class RegisterResource extends CoapResource {
     }
 
     @Override
-    public void handleRequest(Exchange exchange) {
+    public void handleRequest(final Exchange exchange) {
         try {
             super.handleRequest(exchange);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("Exception while handling a request on the /rd resource", e);
             // unexpected error, we should sent something like a INTERNAL_SERVER_ERROR.
             // but it would not be LWM2M compliant. so BAD_REQUEST for now...
@@ -85,8 +86,8 @@ public class RegisterResource extends CoapResource {
     }
 
     @Override
-    public void handlePOST(CoapExchange exchange) {
-        Request request = exchange.advanced().getRequest();
+    public void handlePOST(final CoapExchange exchange) {
+        final Request request = exchange.advanced().getRequest();
 
         LOG.debug("POST received : {}", request);
 
@@ -104,10 +105,10 @@ public class RegisterResource extends CoapResource {
         Long lifetime = null;
         String smsNumber = null;
         String lwVersion = null;
-        BindingMode binding = null;
+        EnumSet<BindingMode> binding = null;
         LinkObject[] objectLinks = null;
         // Get Params
-        for (String param : request.getOptions().getUriQuery()) {
+        for (final String param : request.getOptions().getUriQuery()) {
             if (param.startsWith(QUERY_PARAM_ENDPOINT)) {
                 endpoint = param.substring(3);
             } else if (param.startsWith(QUERY_PARAM_LIFETIME)) {
@@ -117,7 +118,7 @@ public class RegisterResource extends CoapResource {
             } else if (param.startsWith(QUERY_PARAM_LWM2M_VERSION)) {
                 lwVersion = param.substring(6);
             } else if (param.startsWith(QUERY_PARAM_BINDING_MODE)) {
-                binding = BindingMode.valueOf(param.substring(2));
+                binding = BindingMode.parseString(param.substring(2));
             }
         }
         // Get object Links
@@ -125,7 +126,7 @@ public class RegisterResource extends CoapResource {
             objectLinks = LinkObject.parse(request.getPayload());
         }
         // Which end point did the client post this request to?
-        InetSocketAddress registrationEndpoint = exchange.advanced().getEndpoint().getAddress();
+        final InetSocketAddress registrationEndpoint = exchange.advanced().getEndpoint().getAddress();
         // Get Security info
         String pskIdentity = null;
         PublicKey rpk = null;
@@ -134,12 +135,12 @@ public class RegisterResource extends CoapResource {
             rpk = ((SecureEndpoint) exchange.advanced().getEndpoint()).getRawPublicKey(request);
         }
 
-        RegisterRequest registerRequest = new RegisterRequest(endpoint, lifetime, lwVersion, binding, smsNumber,
+        final RegisterRequest registerRequest = new RegisterRequest(endpoint, lifetime, lwVersion, binding, smsNumber,
                 objectLinks, request.getSource(), request.getSourcePort(), registrationEndpoint, pskIdentity, rpk);
 
         // Handle request
         // -------------------------------
-        RegisterResponse response = registrationHandler.register(registerRequest);
+        final RegisterResponse response = registrationHandler.register(registerRequest);
 
         // Create CoAP Response from LwM2m request
         // -------------------------------
@@ -188,8 +189,8 @@ public class RegisterResource extends CoapResource {
      * @param exchange the CoAP request containing the updated registration properties
      */
     @Override
-    public void handlePUT(CoapExchange exchange) {
-        Request request = exchange.advanced().getRequest();
+    public void handlePUT(final CoapExchange exchange) {
+        final Request request = exchange.advanced().getRequest();
 
         LOG.debug("UPDATE received : {}", request);
         if (!Type.CON.equals(request.getType())) {
@@ -197,7 +198,7 @@ public class RegisterResource extends CoapResource {
             return;
         }
 
-        List<String> uri = exchange.getRequestOptions().getUriPath();
+        final List<String> uri = exchange.getRequestOptions().getUriPath();
         if (uri == null || uri.size() != 2 || !RESOURCE_NAME.equals(uri.get(0))) {
             exchange.respond(ResponseCode.NOT_FOUND);
             return;
@@ -205,29 +206,29 @@ public class RegisterResource extends CoapResource {
 
         // Create LwM2m request from CoAP request
         // --------------------------------
-        String registrationId = uri.get(1);
+        final String registrationId = uri.get(1);
         Long lifetime = null;
         String smsNumber = null;
-        BindingMode binding = null;
+        EnumSet<BindingMode> binding = null;
         LinkObject[] objectLinks = null;
-        for (String param : request.getOptions().getUriQuery()) {
+        for (final String param : request.getOptions().getUriQuery()) {
             if (param.startsWith(QUERY_PARAM_LIFETIME)) {
                 lifetime = Long.valueOf(param.substring(3));
             } else if (param.startsWith(QUERY_PARAM_SMS)) {
                 smsNumber = param.substring(4);
             } else if (param.startsWith(QUERY_PARAM_BINDING_MODE)) {
-                binding = BindingMode.valueOf(param.substring(2));
+                binding = BindingMode.parseString(param.substring(2));
             }
         }
         if (request.getPayload() != null && request.getPayload().length > 0) {
             objectLinks = LinkObject.parse(request.getPayload());
         }
-        UpdateRequest updateRequest = new UpdateRequest(registrationId, request.getSource(), request.getSourcePort(),
+        final UpdateRequest updateRequest = new UpdateRequest(registrationId, request.getSource(), request.getSourcePort(),
                 lifetime, smsNumber, binding, objectLinks);
 
         // Handle request
         // -------------------------------
-        LwM2mResponse updateResponse = registrationHandler.update(updateRequest);
+        final LwM2mResponse updateResponse = registrationHandler.update(updateRequest);
 
         // Create CoAP Response from LwM2m request
         // -------------------------------
@@ -235,20 +236,20 @@ public class RegisterResource extends CoapResource {
     }
 
     @Override
-    public void handleDELETE(CoapExchange exchange) {
+    public void handleDELETE(final CoapExchange exchange) {
         LOG.debug("DELETE received : {}", exchange.advanced().getRequest());
 
-        List<String> uri = exchange.getRequestOptions().getUriPath();
+        final List<String> uri = exchange.getRequestOptions().getUriPath();
 
         if (uri != null && uri.size() == 2 && RESOURCE_NAME.equals(uri.get(0))) {
-            DeregisterRequest deregisterRequest = new DeregisterRequest(uri.get(1));
-            LwM2mResponse deregisterResponse = registrationHandler.deregister(deregisterRequest);
+            final DeregisterRequest deregisterRequest = new DeregisterRequest(uri.get(1));
+            final LwM2mResponse deregisterResponse = registrationHandler.deregister(deregisterRequest);
             exchange.respond(fromLwM2mCode(deregisterResponse.getCode()));
 
             if (exchange.advanced().getEndpoint() instanceof SecureEndpoint
                     && deregisterResponse.getCode().equals(org.eclipse.leshan.ResponseCode.DELETED)) {
                 // clean the DTLS Session
-                Request request = exchange.advanced().getRequest();
+                final Request request = exchange.advanced().getRequest();
                 ((SecureEndpoint) exchange.advanced().getEndpoint()).getDTLSConnector().close(
                         new InetSocketAddress(request.getSource(), request.getSourcePort()));
             }
@@ -264,7 +265,7 @@ public class RegisterResource extends CoapResource {
      * /rd resource.
      */
     @Override
-    public Resource getChild(String name) {
+    public Resource getChild(final String name) {
         return this;
     }
 }

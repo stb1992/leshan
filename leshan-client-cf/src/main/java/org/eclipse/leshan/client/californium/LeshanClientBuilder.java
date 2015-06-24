@@ -16,20 +16,27 @@
 
 package org.eclipse.leshan.client.californium;
 
+import io.netty.channel.ChannelOption;
+
 import java.net.InetSocketAddress;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import javax.net.ssl.SSLContext;
 
 import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.network.tcp.TCPEndpoint;
-import org.eclipse.californium.elements.config.ConnectionConfig;
 import org.eclipse.californium.elements.config.TCPConnectionConfig;
+import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 import org.eclipse.californium.scandium.DTLSConnector;
 import org.eclipse.californium.scandium.dtls.cipher.CipherSuite;
 import org.eclipse.californium.scandium.dtls.pskstore.StaticPskStore;
@@ -56,17 +63,13 @@ public class LeshanClientBuilder {
     /** TCP port for TLS */
     public static final int PORT_TLS = 443;
 
-    private BindingMode bindingMode;
+    private final Set<BindingMode> bindingMode = EnumSet.noneOf(BindingMode.class);
     private ObjectsInitializer initializer;
     private InetSocketAddress localAddress;
     private InetSocketAddress serverAddress;
-    private final Set<SecurityMode> securityModes = new HashSet<SecurityMode>();
-    private String pskIdentity;
-    private byte[] pskKey;
-    private PrivateKey privateKey;
-    private PublicKey publicKey;
-
-	private ConnectionConfig connectionConfig;
+	private TCPConfigBuilder tcpConfiguration;
+	private DTLSConfigBuilder dtlsConfigBuilder;
+	
 
     /**
      * Set the remote LW-M2M provider the client should connect to.
@@ -76,54 +79,31 @@ public class LeshanClientBuilder {
      */
     public LeshanClientBuilder setServerAddress(final InetSocketAddress serverAddress) {
         Validate.notNull(serverAddress);
-
         this.serverAddress = serverAddress;
 
         return this;
     }
-
-    /**
-     * Add PSK authentication to the LW-M2M server.
-     * 
-     * @param pskIdentity the PSK Identity to use.
-     * @param pskKey the PSK key to use.
-     * @return
-     */
-    public LeshanClientBuilder setPskSecurity(final String pskIdentity, final byte[] pskKey) {
-        this.securityModes.add(SecurityMode.PSK);
-        this.pskIdentity = pskIdentity;
-        this.pskKey = pskKey;
-
-        return this;
+    
+    public TCPConfigBuilder addBindingModeTCPClient() {
+    	bindingMode.add(BindingMode.C);
+    	this.tcpConfiguration = new TCPConfigBuilder(this);
+    	return tcpConfiguration;
     }
-
-    /**
-     * Add RPK authentication to the LW-M2M server.
-     * 
-     * @param clientPrivateKey the Private RPK key to use.
-     * @param clientPublicKey thePublic RPK key to use.
-     * @return
-     */
-    public LeshanClientBuilder setRpkSecurity(final PrivateKey clientPrivateKey, final PublicKey clientPublicKey) {
-        this.securityModes.add(SecurityMode.RPK);
-        this.privateKey = clientPrivateKey;
-        this.publicKey = clientPublicKey;
-
-        return this;
+    
+    public DTLSConfigBuilder addBindingModeUDP() {
+    	bindingMode.add(BindingMode.U);
+    	this.dtlsConfigBuilder = new DTLSConfigBuilder(this);
+    	return dtlsConfigBuilder;
     }
-
-    /**
-     * Set the binding mode which the client should use to connect to the LW-M2M provider.
-     * 
-     * @param bindingMode The particular binding mode as defined in the LW-M2M specification, section 5.2.1.1. If none
-     *        is provided 'U' (UDP, no Queuing Mode, no SMS) shall be used.
-     * @return
-     */
-    public LeshanClientBuilder setBindingMode(final BindingMode bindingMode) {
-        Validate.notNull(bindingMode);
-        this.bindingMode = bindingMode;
-
-        return this;
+    
+    public LeshanClientBuilder addBindingModeSMS() {
+    	bindingMode.add(BindingMode.S);
+    	return this;
+    }
+    
+    public LeshanClientBuilder addBindingModeQueue() {
+    	bindingMode.add(BindingMode.Q);
+    	return this;
     }
 
     /**
@@ -153,17 +133,6 @@ public class LeshanClientBuilder {
 
         return this;
     }
-    
-    /**
-     * set a full connection configuration File instead of passing only the local address
-     * @param connectionConfig
-     * @return
-     */
-    public LeshanClientBuilder setConnectionConfig(final ConnectionConfig connectionConfig) {
-        Validate.notNull(connectionConfig);
-        this.connectionConfig = connectionConfig;
-        return this;
-    }
 
     /**
      * Build a Leshan client.
@@ -178,50 +147,218 @@ public class LeshanClientBuilder {
             localAddress = new InetSocketAddress("0", 0);
         if (serverAddress == null)
             serverAddress = new InetSocketAddress("0", PORT);
-        if (bindingMode == null)
-            bindingMode = BindingMode.U;
+        if (bindingMode.isEmpty())
+            bindingMode.add(BindingMode.U);
         if (initializer == null)
             initializer = new ObjectsInitializer();
-        if (securityModes.isEmpty())
-            securityModes.add(SecurityMode.NO_SEC);
+        if (dtlsConfigBuilder == null) {
+        	dtlsConfigBuilder = new DTLSConfigBuilder(this);
+        	dtlsConfigBuilder.noSec();
+        }
         if (objectId == null)
             objectId = new int[] {};
 
         final List<ObjectEnabler> objects = objectId.length == 0 ? initializer.createMandatory() : initializer
                 .create(objectId);
 
-        Endpoint endpoint;
+        Endpoint endpoint = null;
+        BindingMode transportBindingMode = null;
+        for(final BindingMode b : bindingMode) {
+        	if(b.equals(BindingMode.Q) || b.equals(BindingMode.S)) {
+        		throw new IllegalArgumentException("Leshan Client does not currently support the selected BindingMode "
+                        + b);
+        	} else if(endpoint != null) {
+        		throw new IllegalArgumentException("Leshan Client does not currently support 2 Transport mode simulatniously. Cannot support "
+                        + b + " and " + transportBindingMode + " at the same time");
+        	} else if (b.equals(BindingMode.C)) {
+        		transportBindingMode = b;
+        		final LeshanTCPConnectionConfig config = new LeshanTCPConnectionConfig(serverAddress.getHostName(), serverAddress.getPort(), 
+        																		tcpConfiguration.isSharable, tcpConfiguration.listener);
+        		if(tcpConfiguration.tlsConfigBuilder != null && tcpConfiguration.tlsConfigBuilder.isSecure) {
+        			config.secure(tcpConfiguration.tlsConfigBuilder.sslContext);
+        		}
+                endpoint = new TCPEndpoint(config);
 
-        switch (bindingMode) {
-        case T:
-            endpoint = new TCPEndpoint((TCPConnectionConfig)connectionConfig);
-            break;
-        case U:
-            if (securityModes.contains(SecurityMode.NO_SEC)) {
-                endpoint = new CoAPEndpoint(localAddress);
-            } else {
-                final DTLSConnector dtlsConnector = new DTLSConnector(localAddress);
+        	} else if (b.equals(BindingMode.U)) {
+        		transportBindingMode = b;
+        		if (dtlsConfigBuilder.securityModes.contains(SecurityMode.NO_SEC)) {
+                    endpoint = new CoAPEndpoint(localAddress);
+                } else {
+                    final DTLSConnector dtlsConnector = new DTLSConnector(localAddress);
 
-                if (securityModes.contains(SecurityMode.PSK)) {
-                    // TODO The preferred CipherSuite should not be necessary, if I only set the PSK (scandium bug ?)
-                    dtlsConnector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_PSK_WITH_AES_128_CCM_8);
-                    dtlsConnector.getConfig().setPskStore(new StaticPskStore(pskIdentity, pskKey));
+                    if (dtlsConfigBuilder.securityModes.contains(SecurityMode.PSK)) {
+                        // TODO The preferred CipherSuite should not be necessary, if I only set the PSK (scandium bug ?)
+                        dtlsConnector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_PSK_WITH_AES_128_CCM_8);
+                        dtlsConnector.getConfig().setPskStore(new StaticPskStore(dtlsConfigBuilder.pskIdentity, dtlsConfigBuilder.pskKey));
+                    }
+                    if (dtlsConfigBuilder.securityModes.contains(SecurityMode.RPK)) {
+                        // TODO The preferred CipherSuite should not be necessary, if I only set the PSK (scandium bug ?)
+                        dtlsConnector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8);
+                        dtlsConnector.getConfig().setPrivateKey(dtlsConfigBuilder.privateKey, dtlsConfigBuilder.publicKey);
+                    }
+
+                    endpoint = new CoAPEndpoint(dtlsConnector, NetworkConfig.getStandard());
                 }
-                if (securityModes.contains(SecurityMode.RPK)) {
-                    // TODO The preferred CipherSuite should not be necessary, if I only set the PSK (scandium bug ?)
-                    dtlsConnector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8);
-                    dtlsConnector.getConfig().setPrivateKey(privateKey, publicKey);
-                }
-
-                endpoint = new CoAPEndpoint(dtlsConnector, NetworkConfig.getStandard());
-            }
-            break;
-        default:
-            throw new IllegalArgumentException("Leshan Client does not currently support the selected BindingMode "
-                    + bindingMode);
+        	}
         }
 
         return new LeshanClient(endpoint, serverAddress, new ArrayList<LwM2mObjectEnabler>(objects));
     }
+    
+    public class TCPConfigBuilder {
+    	private boolean isSharable;
+		private ConnectionStateListener listener;
+		private final Map<ChannelOption<?>, Object> options = new HashMap<ChannelOption<?>, Object>();
+		private final LeshanClientBuilder clientBuilder;
+		private TLSConfigBuilder tlsConfigBuilder;
+		
+		private TCPConfigBuilder(final LeshanClientBuilder clientBuilder) {
+			this.clientBuilder = clientBuilder;
+		}
 
+
+		public TCPConfigBuilder makeConnectionSharable() {
+    		this.isSharable = true;
+    		return this;
+    	}
+		
+		public TCPConfigBuilder setConnectionStateListener(final ConnectionStateListener listener) {
+			this.listener = listener;
+			return this;
+		}
+		
+		public <T> void addChannelOption(final ChannelOption<T> option, final T value) {
+			this.options.put(option, value);
+		}
+		
+		public TLSConfigBuilder secure() {
+			this.tlsConfigBuilder = new TLSConfigBuilder(this);
+			return tlsConfigBuilder;
+		}
+		
+		public LeshanClientBuilder configure() {
+			return clientBuilder;
+		}
+    }
+
+    public class TLSConfigBuilder {
+    	private final TCPConfigBuilder clientBuilder;
+    	private boolean isSecure = true;
+		private SSLContext sslContext;
+
+		private TLSConfigBuilder(final TCPConfigBuilder clientBuilder) {
+			this.clientBuilder = clientBuilder;
+		}
+		
+		public TLSConfigBuilder noSec() {
+			isSecure = false;
+			return this;
+		}
+		
+		public TLSConfigBuilder setSSLContext(final SSLContext sslContext) {
+			this.sslContext = sslContext;
+			return this;
+		}
+		
+		public TCPConfigBuilder configure() {
+			return clientBuilder;
+		}
+    }
+    
+    public class DTLSConfigBuilder {
+    	
+    	private final LeshanClientBuilder clientBuilder;
+		private String pskIdentity;
+		private byte[] pskKey;
+		private PrivateKey privateKey;
+		private PublicKey publicKey;
+	    private final Set<SecurityMode> securityModes = new HashSet<SecurityMode>();
+
+		private DTLSConfigBuilder(final LeshanClientBuilder clientBuilder) {
+    		this.clientBuilder = clientBuilder;
+		}
+		
+		public DTLSConfigBuilder noSec() {
+			securityModes.add(SecurityMode.NO_SEC);
+			return this;
+		}
+		
+	    /**
+	     * Add PSK authentication to the LW-M2M server.
+	     * 
+	     * @param pskIdentity the PSK Identity to use.
+	     * @param pskKey the PSK key to use.
+	     * @return
+	     */
+	    public DTLSConfigBuilder setPskSecurity(final String pskIdentity, final byte[] pskKey) {
+	        this.securityModes.add(SecurityMode.PSK);
+	        this.pskIdentity = pskIdentity;
+	        this.pskKey = pskKey;
+
+	        return this;
+	    }
+
+	    /**
+	     * Add RPK authentication to the LW-M2M server.
+	     * 
+	     * @param clientPrivateKey the Private RPK key to use.
+	     * @param clientPublicKey thePublic RPK key to use.
+	     * @return
+	     */
+	    public DTLSConfigBuilder setRpkSecurity(final PrivateKey clientPrivateKey, final PublicKey clientPublicKey) {
+	        this.securityModes.add(SecurityMode.RPK);
+	        this.privateKey = clientPrivateKey;
+	        this.publicKey = clientPublicKey;
+
+	        return this;
+	    }
+		
+		public LeshanClientBuilder configure() {
+			if(securityModes.isEmpty()) {
+				securityModes.add(SecurityMode.NO_SEC);
+			}
+			return clientBuilder;
+		}
+    }
+    
+    private class LeshanTCPConnectionConfig extends TCPConnectionConfig {
+    	
+    	private final String remoteAddress;
+		private final int remotePort;
+		private final boolean makeSharable;
+		private final ConnectionStateListener listener;
+
+		private LeshanTCPConnectionConfig(final String remoteAddress, final int remotePort, 
+										  final boolean makeSharable, final ConnectionStateListener listener) {
+			super(CommunicationRole.CLIENT);
+    		this.remoteAddress = remoteAddress;
+    		this.remotePort = remotePort;
+    		this.makeSharable = makeSharable;
+    		this.listener = listener;
+		}
+		
+		private void secure(final SSLContext sslContext) {
+			setClientSSL(sslContext);
+		}
+
+		@Override
+		public String getRemoteAddress() {
+			return remoteAddress;
+		}
+
+		@Override
+		public int getRemotePort() {
+			return remotePort;
+		}
+		
+		@Override
+		public boolean isSharable() {
+			return makeSharable;
+		}
+    	
+		@Override
+		public ConnectionStateListener getListener() {
+			return listener;
+		}
+    }
 }

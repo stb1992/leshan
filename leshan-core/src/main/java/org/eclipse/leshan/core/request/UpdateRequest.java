@@ -17,6 +17,7 @@ package org.eclipse.leshan.core.request;
 
 import java.net.InetAddress;
 import java.util.Date;
+import java.util.EnumSet;
 
 import org.eclipse.leshan.LinkObject;
 import org.eclipse.leshan.core.response.LwM2mResponse;
@@ -27,21 +28,21 @@ public class UpdateRequest implements UplinkRequest<LwM2mResponse> {
     private final Integer port;
     private final Long lifeTimeInSec;
     private final String smsNumber;
-    private final BindingMode bindingMode;
+    private final EnumSet<BindingMode> bindingMode;
     private final String registrationId;
     private final LinkObject[] objectLinks;
 
-    public UpdateRequest(String registrationId, InetAddress address, Integer port) {
+    public UpdateRequest(final String registrationId, final InetAddress address, final Integer port) {
         this(registrationId, address, port, null, null, null, null);
     }
 
-    public UpdateRequest(String registrationId, InetAddress address, Integer port, Long lifetime, String smsNumber,
-            BindingMode binding, LinkObject[] objectLinks) {
+    public UpdateRequest(final String registrationId, final InetAddress address, final Integer port, final Long lifetime, final String smsNumber,
+    		final EnumSet<BindingMode> binding, final LinkObject[] objectLinks) {
         this(registrationId, address, port, lifetime, smsNumber, binding, objectLinks, null);
     }
 
-    public UpdateRequest(String registrationId, Long lifetime, String smsNumber, BindingMode binding,
-            LinkObject[] objectLinks) {
+    public UpdateRequest(final String registrationId, final Long lifetime, final String smsNumber, final EnumSet<BindingMode> binding,
+            final LinkObject[] objectLinks) {
         this(registrationId, null, null, lifetime, smsNumber, binding, objectLinks, null);
     }
 
@@ -58,8 +59,8 @@ public class UpdateRequest implements UplinkRequest<LwM2mResponse> {
      * @param registrationDate the point in time the client registered with the server (?)
      * @throws NullPointerException if the registration ID is <code>null</code>
      */
-    public UpdateRequest(String registrationId, InetAddress address, Integer port, Long lifetime, String smsNumber,
-            BindingMode binding, LinkObject[] objectLinks, Date registrationDate) {
+    public UpdateRequest(final String registrationId, final InetAddress address, final Integer port, final Long lifetime, final String smsNumber,
+    		final EnumSet<BindingMode> binding, final LinkObject[] objectLinks, final Date registrationDate) {
 
         if (registrationId == null) {
             throw new NullPointerException("Registration ID must not be null");
@@ -97,12 +98,12 @@ public class UpdateRequest implements UplinkRequest<LwM2mResponse> {
         return smsNumber;
     }
 
-    public BindingMode getBindingMode() {
+    public EnumSet<BindingMode> getBindingMode() {
         return bindingMode;
     }
 
     @Override
-    public void accept(UplinkRequestVisitor visitor) {
+    public void accept(final UplinkRequestVisitor visitor) {
         visitor.visit(this);
     }
 }

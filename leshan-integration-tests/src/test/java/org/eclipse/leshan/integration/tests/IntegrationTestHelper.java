@@ -24,6 +24,7 @@ import org.eclipse.leshan.client.LwM2mClient;
 import org.eclipse.leshan.client.californium.LeshanClientBuilder;
 import org.eclipse.leshan.server.LwM2mServer;
 import org.eclipse.leshan.server.californium.LeshanServerBuilder;
+import org.eclipse.leshan.server.californium.LeshanServerBuilder.LeshanUDPServerBuilder;
 import org.eclipse.leshan.server.californium.impl.LeshanServer;
 import org.eclipse.leshan.server.californium.impl.SecureEndpoint;
 import org.eclipse.leshan.server.client.Client;
@@ -47,9 +48,9 @@ public class IntegrationTestHelper {
     }
 
     public void createServer() {
-        final LeshanServerBuilder builder = new LeshanServerBuilder();
-        builder.setLocalAddress(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
-        builder.setLocalAddressSecure(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
+        final LeshanUDPServerBuilder builder = LeshanServerBuilder.getLeshanUDPServerBuilder();
+        builder.setLocalAddress(InetAddress.getLoopbackAddress().getHostAddress(), 0);
+        builder.setLocalAddressSecure(InetAddress.getLoopbackAddress().getHostAddress(), 0);
         builder.setSecurityRegistry(new SecurityRegistryImpl() {
             // TODO we should separate SecurityRegistryImpl in 2 registries :
             // InMemorySecurityRegistry and PersistentSecurityRegistry

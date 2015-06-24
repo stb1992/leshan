@@ -15,7 +15,6 @@
  *******************************************************************************/
 package org.eclipse.leshan.server.californium.impl;
 
-import java.net.InetSocketAddress;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.HashSet;
@@ -90,21 +89,17 @@ public class LeshanServer implements LwM2mServer {
      * @param privateKey for RPK authentication mode
      * @param publicKey for RPK authentication mode
      */
-    public LeshanServer(final InetSocketAddress localAddress, final InetSocketAddress localAddressSecure,
-            final ClientRegistry clientRegistry, final SecurityRegistry securityRegistry,
-            final ObservationRegistry observationRegistry, final LwM2mModelProvider modelProvider, 
-            CommunicationRole role, final ConnectionConfig config) {
-    	if(config == null) {
-    		Validate.notNull(localAddress, "IP address cannot be null");
-    		Validate.notNull(localAddressSecure, "Secure IP address cannot be null");
-    		Validate.notNull(role, "role cannot be null");
-    	}
-    	role = config.getCommunicationRole();
+    public LeshanServer(final ClientRegistry clientRegistry, final SecurityRegistry securityRegistry,
+            		    final ObservationRegistry observationRegistry, final LwM2mModelProvider modelProvider, 
+            		    final ConnectionConfig config) {
 
+        Validate.notNull(config, "connectionConfig cannot be null");
         Validate.notNull(clientRegistry, "clientRegistry cannot be null");
         Validate.notNull(securityRegistry, "securityRegistry cannot be null");
         Validate.notNull(observationRegistry, "observationRegistry cannot be null");
         Validate.notNull(modelProvider, "modelProvider cannot be null");
+
+        final CommunicationRole role = config.getCommunicationRole();
 
         // Init registries
         this.clientRegistry = clientRegistry;
@@ -137,9 +132,9 @@ public class LeshanServer implements LwM2mServer {
         Endpoint endpoint;
         switch(role) {
         case NODE:
-        	endpoint = new CoAPEndpoint(localAddress);
+        	endpoint = new CoAPEndpoint(((LeshanUDPConnnectionConfig)config).getLocalAddress());
         	// secure endpoint
-            final DTLSConnector connector = new DTLSConnector(localAddressSecure);
+            final DTLSConnector connector = new DTLSConnector(((LeshanUDPConnnectionConfig)config).getLocalAddressSecure());
             connector.getConfig().setPskStore(new LwM2mPskStore(this.securityRegistry, this.clientRegistry));
             final PrivateKey privateKey = this.securityRegistry.getServerPrivateKey();
             final PublicKey publicKey = this.securityRegistry.getServerPublicKey();

@@ -15,14 +15,23 @@
  *******************************************************************************/
 package org.eclipse.leshan.server.californium;
 
+import io.netty.channel.ChannelOption;
+
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.EnumSet;
+
+import javax.net.ssl.SSLContext;
 
 import org.eclipse.californium.elements.config.ConnectionConfig;
 import org.eclipse.californium.elements.config.ConnectionConfig.CommunicationRole;
+import org.eclipse.californium.elements.config.TCPConnectionConfig.SSLCLientCertReq;
+import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 import org.eclipse.leshan.core.request.BindingMode;
 import org.eclipse.leshan.server.LwM2mServer;
 import org.eclipse.leshan.server.californium.impl.LeshanServer;
+import org.eclipse.leshan.server.californium.impl.LeshanTCPConnectionConfig;
+import org.eclipse.leshan.server.californium.impl.LeshanUDPConnnectionConfig;
 import org.eclipse.leshan.server.client.ClientRegistry;
 import org.eclipse.leshan.server.impl.ClientRegistryImpl;
 import org.eclipse.leshan.server.impl.ObservationRegistryImpl;
@@ -44,107 +53,179 @@ public class LeshanServerBuilder {
     public static final int PORT = 5683;
 
     /** IANA assigned UDP port for CoAP with DTLS (so for LWM2M) */
-    public static final int PORT_DTLS = 5684;
-
-    private SecurityRegistry securityRegistry;
-    private ObservationRegistry observationRegistry;
-    private ClientRegistry clientRegistry;
-    private LwM2mModelProvider modelProvider;
-    private InetSocketAddress localAddress;
-    private InetSocketAddress localAddressSecure;
-    private BindingMode bindingMode;
-
-	private ConnectionConfig connectionConfig;
-
-    public LeshanServerBuilder setLocalAddress(final String hostname, final int port) {
-        this.localAddress = new InetSocketAddress(hostname, port);
-        return this;
-    }
-
-    public LeshanServerBuilder setLocalAddress(final InetSocketAddress localAddress) {
-        this.localAddress = localAddress;
-        return this;
-    }
-
-    public LeshanServerBuilder setLocalAddressSecure(final String hostname, final int port) {
-        this.localAddressSecure = new InetSocketAddress(hostname, port);
-        return this;
-    }
-
-    public LeshanServerBuilder setLocalAddressSecure(final InetSocketAddress localAddressSecure) {
-        this.localAddressSecure = localAddressSecure;
-        return this;
-    }
-
-    public LeshanServerBuilder setClientRegistry(final ClientRegistry clientRegistry) {
-        this.clientRegistry = clientRegistry;
-        return this;
-    }
-
-    public LeshanServerBuilder setObservationRegistry(final ObservationRegistry observationRegistry) {
-        this.observationRegistry = observationRegistry;
-        return this;
-    }
-
-    public LeshanServerBuilder setSecurityRegistry(final SecurityRegistry securityRegistry) {
-        this.securityRegistry = securityRegistry;
-        return this;
-    }
-
-    public LeshanServerBuilder setObjectModelProvider(final LwM2mModelProvider objectModelProvider) {
-        this.modelProvider = objectModelProvider;
-        return this;
-    }
-
-    public LeshanServerBuilder setBindingMode(final BindingMode bindingMode) {
-        this.bindingMode = bindingMode;
-        return this;
+    public static final int PORT_DTLS = 5684;    
+    
+    public static LeshanTCPServerBuilder<?> getLeshanTCPServerBuilder() {
+		return new LeshanTCPServerBuilder();
+    	
     }
     
-    public LeshanServerBuilder setConnectionConfig(final ConnectionConfig connectionConfig) {
-        Validate.notNull(connectionConfig);
-        this.connectionConfig = connectionConfig;
-        return this;
+    public static LeshanTLSServerBuilder getLeshanTLSServerBuilder() {
+		return new LeshanTLSServerBuilder();
     }
+    
+    public static LeshanUDPServerBuilder getLeshanUDPServerBuilder() {
+		return new LeshanUDPServerBuilder();
+    	
+    }
+    
+    public static abstract class BasicLeshanServerBuilder<E extends BasicLeshanServerBuilder<E>> {
+    	
+        private final EnumSet<BindingMode> bindingModes;
+        
+    	protected SecurityRegistry securityRegistry;
+    	protected ObservationRegistry observationRegistry;
+    	protected ClientRegistry clientRegistry;
+    	protected LwM2mModelProvider modelProvider;
 
-    public LeshanServer build() {
-        if (localAddress == null)
-            localAddress = new InetSocketAddress((InetAddress) null, PORT);
-        if (localAddressSecure == null)
-            localAddressSecure = new InetSocketAddress((InetAddress) null, PORT_DTLS);
-        if (clientRegistry == null)
-            clientRegistry = new ClientRegistryImpl();
-        if (securityRegistry == null)
-            securityRegistry = new SecurityRegistryImpl();
-        if (observationRegistry == null)
-            observationRegistry = new ObservationRegistryImpl();
-        if (modelProvider == null) {
-            modelProvider = new StandardModelProvider();
+    	private BasicLeshanServerBuilder(final BindingMode bMode){
+    		bindingModes = BindingMode.getBindingMode(bMode);
+    	}
+        
+    	public E setClientRegistry(final ClientRegistry clientRegistry) {
+            this.clientRegistry = clientRegistry;
+            return (E)this;
         }
-        if (bindingMode == null) {
-            bindingMode = BindingMode.U;
+
+        public E setObservationRegistry(final ObservationRegistry observationRegistry) {
+            this.observationRegistry = observationRegistry;
+            return (E) this;
         }
-        CommunicationRole role;
-        switch (bindingMode) {
-        case U:
-        case UQ:
-        case UQS:
-        case US:
-            role = CommunicationRole.NODE;
-            break;
-        case T:
-        case TQ:
-            role = CommunicationRole.SERVER;
-            break;
-        case C:
-        case CQ:
-            role = CommunicationRole.CLIENT;
-            break;
-        default:
-            throw new IllegalArgumentException("Leshan Server does not support the following Binding Mode "
-                    + bindingMode);
+
+        public E setSecurityRegistry(final SecurityRegistry securityRegistry) {
+            this.securityRegistry = securityRegistry;
+            return (E) this;
         }
-        return new LeshanServer(localAddress, localAddressSecure, clientRegistry, securityRegistry,
-                observationRegistry, modelProvider, role, connectionConfig);
+
+        public E setObjectModelProvider(final LwM2mModelProvider objectModelProvider) {
+            this.modelProvider = objectModelProvider;
+            return (E)this;
+        }
+        
+        public LeshanServer build() {
+            if (clientRegistry == null)
+                clientRegistry = new ClientRegistryImpl();
+            if (securityRegistry == null)
+                securityRegistry = new SecurityRegistryImpl();
+            if (observationRegistry == null)
+                observationRegistry = new ObservationRegistryImpl();
+            if (modelProvider == null) 
+                modelProvider = new StandardModelProvider();
+            
+            if(bindingModes.contains(BindingMode.Q) || bindingModes.contains(BindingMode.S)) {
+            	//log that we don't support these for now
+            }
+            
+            final ConnectionConfig connectionConfig = buildConnectionConfig();
+
+			return new LeshanServer(clientRegistry, securityRegistry, observationRegistry, modelProvider, connectionConfig);
+        }
+        
+        protected abstract ConnectionConfig buildConnectionConfig();
     }
+    
+    public static class LeshanTCPServerBuilder<T extends LeshanTCPServerBuilder<T>> extends BasicLeshanServerBuilder<T>{
+    	
+		protected final LeshanTCPConnectionConfig connectionConfig;
+    	
+    	 public LeshanTCPServerBuilder(){
+    		 super(BindingMode.T);
+    		 this.connectionConfig = new LeshanTCPConnectionConfig(CommunicationRole.SERVER);
+    	 }
+    	 
+    	 public T setConnectionStateListner(final ConnectionStateListener connectionStateListener) {
+    		 connectionConfig.setConnectionStateListener(connectionStateListener);
+			return (T)this;
+    	 }
+    	 
+    	 public <O> T addChannelOption(final ChannelOption<O> option, final O value) {
+    			connectionConfig.addChannelOption(option, value);
+    			return (T)this;
+    	}
+    	 
+    	 public T setLocalAddress(final String address) {
+    		connectionConfig.setAddress(address);
+ 			 return (T)this;
+    	 }
+    	 
+    	 public T setPort(final int port) {
+    		 connectionConfig.setPort(port);
+ 			 return (T)this;
+    	 }
+
+		@Override
+		protected ConnectionConfig buildConnectionConfig() {
+			if (connectionConfig.getRemoteAddress() == null)
+                connectionConfig.setAddress("127.0.0.1");
+            if (connectionConfig.getRemotePort() == 0);
+                connectionConfig.setPort(PORT);
+			return connectionConfig;
+		}
+    }
+    
+    public static class LeshanTLSServerBuilder extends LeshanTCPServerBuilder<LeshanTLSServerBuilder>{
+    	
+    	protected SSLContext sslContext;
+		protected SSLCLientCertReq req;
+		protected String[] supportedTLSVersion;
+
+		
+    	public LeshanTLSServerBuilder setSSLContext(final SSLContext sslContext) {
+    		this.sslContext = sslContext;
+    		return this;
+    	}
+    	
+    	public LeshanTLSServerBuilder setSSLClientCertReq(final SSLCLientCertReq req) {
+    		this.req = req;
+    		return this;
+    	}
+    	
+    	public LeshanTLSServerBuilder setSupportedTLSVersion(final String... supportedTLSVersion) {
+    		this.supportedTLSVersion = supportedTLSVersion;
+    		return this;
+    	}
+    	
+		@Override
+		protected ConnectionConfig buildConnectionConfig() {
+			Validate.notNull(sslContext, "SSLContext cannot be null is using TLS Connector");
+			if(req == null) {
+				req = SSLCLientCertReq.NONE;
+			}
+			if(supportedTLSVersion == null) {
+				supportedTLSVersion = new String[0];
+			}
+			connectionConfig.setServerSSL(sslContext, req, supportedTLSVersion);
+			return connectionConfig;
+		}    
+    }
+    
+    public static class LeshanUDPServerBuilder extends BasicLeshanServerBuilder<LeshanUDPServerBuilder>{
+    	
+    	private InetSocketAddress localAddress;
+        private InetSocketAddress localAddressSecure;
+        
+    	private LeshanUDPServerBuilder(){
+   		 super(BindingMode.U);
+   	 	}
+    	
+        
+        public LeshanUDPServerBuilder setLocalAddress(final String hostname, final int port) {
+            this.localAddress = new InetSocketAddress(hostname, port);
+            return this;
+        }
+
+        public LeshanUDPServerBuilder setLocalAddressSecure(final String hostname, final int port) {
+            this.localAddressSecure = new InetSocketAddress(hostname, port);
+            return this;
+        }
+
+		@Override
+		protected ConnectionConfig buildConnectionConfig() {
+			if (localAddress == null)
+                localAddress = new InetSocketAddress((InetAddress) null, PORT);
+            if (localAddressSecure == null)
+                localAddressSecure = new InetSocketAddress((InetAddress) null, PORT_DTLS);
+			return new LeshanUDPConnnectionConfig(localAddress, localAddressSecure);
+		}
+   }
 }

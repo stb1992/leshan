@@ -29,6 +29,7 @@ import java.security.spec.ECPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.KeySpec;
+import java.util.EnumSet;
 
 import javax.net.ssl.SSLException;
 import javax.xml.bind.DatatypeConverter;
@@ -38,13 +39,15 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.leshan.core.request.BindingMode;
 import org.eclipse.leshan.server.californium.LeshanServerBuilder;
+import org.eclipse.leshan.server.californium.LeshanServerBuilder.BasicLeshanServerBuilder;
+import org.eclipse.leshan.server.californium.LeshanServerBuilder.LeshanTCPServerBuilder;
+import org.eclipse.leshan.server.californium.LeshanServerBuilder.LeshanUDPServerBuilder;
 import org.eclipse.leshan.server.californium.impl.LeshanServer;
 import org.eclipse.leshan.server.impl.SecurityRegistryImpl;
 import org.eclipse.leshan.standalone.servlet.ClientServlet;
 import org.eclipse.leshan.standalone.servlet.EventServlet;
 import org.eclipse.leshan.standalone.servlet.ObjectSpecServlet;
 import org.eclipse.leshan.standalone.servlet.SecurityServlet;
-import org.eclipse.leshan.standalone.servlet.SimpleUDPConnectionConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,11 +60,24 @@ public class LeshanStandalone {
 
     public void start() {
         // Use those ENV variables for specifying the interface to be bound for coap and coaps
-        final String iface = "localhost:5683";//System.getenv("COAPIFACE");
-        final String ifaces = null; //System.getenv("COAPSIFACE");
+        final String iface = System.getenv("COAPIFACE");
+        final String ifaces = System.getenv("COAPSIFACE");
+        final String mainBindingMode = System.getenv("BINDING");
+        
+        final EnumSet<BindingMode> bmodes = BindingMode.parseString(mainBindingMode);
+        
+        if(bmodes.contains(BindingMode.T)) {
+        	buildTCPStandaloneServer(iface);
+        } else if(bmodes.contains(BindingMode.U)) {
+        	buildUDPStandaloneServer(iface, ifaces);
+        } else {
+        	LOG.error("NO Valide binding mode was specified, please pass environement variable BINDING as either U or T, Q and S are not supported for now ");
+        }
+    }
 
-        // Build LWM2M server
-        final LeshanServerBuilder builder = new LeshanServerBuilder();
+    private void buildUDPStandaloneServer(final String iface, final String ifaces) {
+    	 // Build LWM2M server
+        final LeshanUDPServerBuilder builder = LeshanServerBuilder.getLeshanUDPServerBuilder();
         if (iface != null && !iface.isEmpty()) {
             final String[] add = iface.split(":");
             builder.setLocalAddress(add[0], Integer.parseInt(add[1]));
@@ -70,7 +86,6 @@ public class LeshanStandalone {
             final String[] adds = ifaces.split(":");
             builder.setLocalAddressSecure(adds[0], Integer.parseInt(adds[1]));
         }
-        builder.setBindingMode(BindingMode.U);
 
         // Get public and private server key
         PrivateKey privateKey = null;
@@ -102,16 +117,34 @@ public class LeshanStandalone {
         } catch (InvalidKeySpecException | NoSuchAlgorithmException | InvalidParameterSpecException e) {
             LOG.warn("Unable to load RPK.", e);
         }
+		 
+        startServer(builder);
+	}
+
+    //offer a secure connection as well
+	private void buildTCPStandaloneServer(final String iface) {
+		 // Build LWM2M server
+        final LeshanTCPServerBuilder<?> builder = LeshanServerBuilder.getLeshanTCPServerBuilder();
+        if (iface != null && !iface.isEmpty()) {
+            final String[] add = iface.split(":");
+            builder.setLocalAddress(add[0]).setPort(Integer.parseInt(add[1]));
+        } else {
+        	LOG.error("No address as been specified, please enter arguement HOSTNAME, PORT for TCP");
+        }
+
         final TLSServerConnectionConfig config = new TLSServerConnectionConfig("localhost", 5684);
-        final SimpleUDPConnectionConfig configUDP = new SimpleUDPConnectionConfig("localhost", 5683);
-		 final String keystore = "/Users/simonlemoy/Workspace_github/tls_tmp/zatar-server-1.ks";
+		final String keystore = "/Users/simonlemoy/Workspace_github/tls_tmp/zatar-server-1.ks";
 		 try {
 			config.secure("TLS", "password", new String[]{keystore}, "TLSv1.1", "TLSv1.2");
 		} catch (SSLException | NoSuchAlgorithmException e1) {
 			LOG.error("could not setup a secure connection: ", e1);
 		}
-        builder.setConnectionConfig(config);
-        lwServer = builder.build();
+        startServer(builder);
+		
+	}
+
+	private void startServer(final BasicLeshanServerBuilder<?> builder) {
+		lwServer = builder.build();
         lwServer.start();
 
         // Now prepare and start jetty
@@ -149,9 +182,10 @@ public class LeshanStandalone {
         } catch (final Exception e) {
             LOG.error("jetty error", e);
         }
-    }
+	}
+	
 
-    public void stop() {
+	public void stop() {
         try {
             lwServer.destroy();
             server.stop();
