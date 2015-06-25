@@ -41,6 +41,8 @@ import org.eclipse.leshan.server.model.StandardModelProvider;
 import org.eclipse.leshan.server.observation.ObservationRegistry;
 import org.eclipse.leshan.server.security.SecurityRegistry;
 import org.eclipse.leshan.util.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Class helping you to build and configure a Californium based Leshan Lightweight M2M server. Usage: create it, call
@@ -48,6 +50,8 @@ import org.eclipse.leshan.util.Validate;
  * {@link LwM2mServer} ready to operate.
  */
 public class LeshanServerBuilder {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LeshanServer.class);
 
 	/** IANA assigned UDP port for CoAP (so for LWM2M) */
 	public static final int PORT = 5683;
@@ -113,12 +117,12 @@ public class LeshanServerBuilder {
 				modelProvider = new StandardModelProvider();
 
 			if(bindingModes.contains(BindingMode.Q) || bindingModes.contains(BindingMode.S)) {
-				//log that we don't support these for now
+				LOG.info("Binding Modes Q and S are not supported in this verison, they will be omitted");
 			}
 
 			final ConnectionConfig connectionConfig = buildConnectionConfig();
 
-						return new LeshanServer(clientRegistry, securityRegistry, observationRegistry, modelProvider, connectionConfig);
+			return new LeshanServer(clientRegistry, securityRegistry, observationRegistry, modelProvider, connectionConfig);
 		}
 
 		protected abstract ConnectionConfig buildConnectionConfig();
@@ -133,7 +137,7 @@ public class LeshanServerBuilder {
 			this.connectionConfig = new LeshanTCPConnectionConfig(CommunicationRole.SERVER);
 		}
 
-		public T setConnectionStateListner(final ConnectionStateListener connectionStateListener) {
+		public T setConnectionStateListener(final ConnectionStateListener connectionStateListener) {
 			connectionConfig.setConnectionStateListener(connectionStateListener);
 			return (T)this;
 		}

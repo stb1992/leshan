@@ -64,11 +64,11 @@ public class LeshanStandalone {
 		final String ifaces = System.getenv("COAPSIFACE");
 		final String mainBindingMode = System.getenv("BINDING");
 
-		final EnumSet<BindingMode> bmodes = BindingMode.parseString(mainBindingMode);
+		final EnumSet<BindingMode> bindingModes = BindingMode.parseString(mainBindingMode);
 
-		if(bmodes.contains(BindingMode.T)) {
+		if(bindingModes.contains(BindingMode.T)) {
 			buildTCPStandaloneServer(iface);
-		} else if(bmodes.contains(BindingMode.U)) {
+		} else if(bindingModes.contains(BindingMode.U)) {
 			buildUDPStandaloneServer(iface, ifaces);
 		} else {
 			LOG.error("NO Valide binding mode was specified, please pass environement variable BINDING as either U or T, Q and S are not supported for now ");

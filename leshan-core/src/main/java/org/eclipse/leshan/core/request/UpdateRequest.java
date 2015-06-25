@@ -28,7 +28,7 @@ public class UpdateRequest implements UplinkRequest<LwM2mResponse> {
     private final Integer port;
     private final Long lifeTimeInSec;
     private final String smsNumber;
-    private final EnumSet<BindingMode> bindingMode;
+    private final EnumSet<BindingMode> bindingModes;
     private final String registrationId;
     private final LinkObject[] objectLinks;
 
@@ -37,13 +37,13 @@ public class UpdateRequest implements UplinkRequest<LwM2mResponse> {
     }
 
     public UpdateRequest(final String registrationId, final InetAddress address, final Integer port, final Long lifetime, final String smsNumber,
-    		final EnumSet<BindingMode> binding, final LinkObject[] objectLinks) {
-        this(registrationId, address, port, lifetime, smsNumber, binding, objectLinks, null);
+    		final EnumSet<BindingMode> bindingModes, final LinkObject[] objectLinks) {
+        this(registrationId, address, port, lifetime, smsNumber, bindingModes, objectLinks, null);
     }
 
-    public UpdateRequest(final String registrationId, final Long lifetime, final String smsNumber, final EnumSet<BindingMode> binding,
+    public UpdateRequest(final String registrationId, final Long lifetime, final String smsNumber, final EnumSet<BindingMode> bindingModes,
             final LinkObject[] objectLinks) {
-        this(registrationId, null, null, lifetime, smsNumber, binding, objectLinks, null);
+        this(registrationId, null, null, lifetime, smsNumber, bindingModes, objectLinks, null);
     }
 
     /**
@@ -54,13 +54,13 @@ public class UpdateRequest implements UplinkRequest<LwM2mResponse> {
      * @param port the UDP port the client uses for communication
      * @param lifetime the number of seconds the client would like its registration to be valid
      * @param smsNumber the SMS number the client can receive messages under
-     * @param binding the binding mode(s) the client supports
+     * @param bindingModes the binding mode(s) the client supports
      * @param objectLinks the objects and object instances the client hosts/supports
      * @param registrationDate the point in time the client registered with the server (?)
      * @throws NullPointerException if the registration ID is <code>null</code>
      */
     public UpdateRequest(final String registrationId, final InetAddress address, final Integer port, final Long lifetime, final String smsNumber,
-    		final EnumSet<BindingMode> binding, final LinkObject[] objectLinks, final Date registrationDate) {
+    		final EnumSet<BindingMode> bindingModes, final LinkObject[] objectLinks, final Date registrationDate) {
 
         if (registrationId == null) {
             throw new NullPointerException("Registration ID must not be null");
@@ -70,7 +70,7 @@ public class UpdateRequest implements UplinkRequest<LwM2mResponse> {
         this.port = port;
         this.objectLinks = objectLinks;
         this.lifeTimeInSec = lifetime;
-        this.bindingMode = binding;
+        this.bindingModes = bindingModes;
         this.smsNumber = smsNumber;
     }
 
@@ -99,7 +99,7 @@ public class UpdateRequest implements UplinkRequest<LwM2mResponse> {
     }
 
     public EnumSet<BindingMode> getBindingMode() {
-        return bindingMode;
+        return bindingModes;
     }
 
     @Override

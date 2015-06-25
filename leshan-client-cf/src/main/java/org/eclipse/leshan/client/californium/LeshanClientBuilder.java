@@ -63,7 +63,7 @@ public class LeshanClientBuilder {
 	/** TCP port for TLS */
 	public static final int PORT_TLS = 443;
 
-	private final Set<BindingMode> bindingMode = EnumSet.noneOf(BindingMode.class);
+	private final Set<BindingMode> bindingModes = EnumSet.noneOf(BindingMode.class);
 	private ObjectsInitializer initializer;
 	private InetSocketAddress localAddress;
 	private InetSocketAddress serverAddress;
@@ -85,24 +85,24 @@ public class LeshanClientBuilder {
 	}
 
 	public TCPConfigBuilder addBindingModeTCPClient() {
-		bindingMode.add(BindingMode.C);
+		bindingModes.add(BindingMode.C);
 		this.tcpConfiguration = new TCPConfigBuilder(this);
 		return tcpConfiguration;
 	}
 
 	public DTLSConfigBuilder addBindingModeUDP() {
-		bindingMode.add(BindingMode.U);
+		bindingModes.add(BindingMode.U);
 		this.dtlsConfigBuilder = new DTLSConfigBuilder(this);
 		return dtlsConfigBuilder;
 	}
 
 	public LeshanClientBuilder addBindingModeSMS() {
-		bindingMode.add(BindingMode.S);
+		bindingModes.add(BindingMode.S);
 		return this;
 	}
 
 	public LeshanClientBuilder addBindingModeQueue() {
-		bindingMode.add(BindingMode.Q);
+		bindingModes.add(BindingMode.Q);
 		return this;
 	}
 
@@ -147,8 +147,8 @@ public class LeshanClientBuilder {
 			localAddress = new InetSocketAddress("0", 0);
 		if (serverAddress == null)
 			serverAddress = new InetSocketAddress("0", PORT);
-		if (bindingMode.isEmpty())
-			bindingMode.add(BindingMode.U);
+		if (bindingModes.isEmpty())
+			bindingModes.add(BindingMode.U);
 		if (initializer == null)
 			initializer = new ObjectsInitializer();
 		if (dtlsConfigBuilder == null) {
@@ -163,7 +163,7 @@ public class LeshanClientBuilder {
 
 		Endpoint endpoint = null;
 		BindingMode transportBindingMode = null;
-		for(final BindingMode b : bindingMode) {
+		for(final BindingMode b : bindingModes) {
 			if(b.equals(BindingMode.Q) || b.equals(BindingMode.S)) {
 				throw new IllegalArgumentException("Leshan Client does not currently support the selected BindingMode "
 						+ b);

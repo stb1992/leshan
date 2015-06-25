@@ -22,45 +22,45 @@ import java.util.EnumSet;
  */
 public enum BindingMode {
 
-    /** UDP */
-    U,
+	/** UDP */
+	U,
 
-    /** SMS */
-    S,
+	/** SMS */
+	S,
 
-    /** Queue Mode */
-    Q,
+	/** Queue Mode */
+	Q,
 
-    /** TCP Server */
-    T,
+	/** TCP Server */
+	T,
 
-    /** TCP Client */
-    C;
-    
-    public static EnumSet<BindingMode> getBindingMode(final BindingMode... bindingModeList) {
-    	final EnumSet<BindingMode> bindingModes = EnumSet.noneOf(BindingMode.class);
-    	for(final BindingMode bMode : bindingModeList) {
-    		bindingModes.add(bMode);
-    	}
+	/** TCP Client */
+	C;
+
+	public static EnumSet<BindingMode> getBindingMode(final BindingMode... bindingModeList) {
+		final EnumSet<BindingMode> bindingModes = EnumSet.noneOf(BindingMode.class);
+		for(final BindingMode bMode : bindingModeList) {
+			bindingModes.add(bMode);
+		}
 		return bindingModes;
-    }
-    
-    public static String setToString(final EnumSet<BindingMode> bindingModes) {
-    	final StringBuilder sb = new StringBuilder(); 
-    	for(final BindingMode bmode : bindingModes) {
-    		sb.append(bmode).append(" ");
-    	}
-    	return sb.toString();
-    }
-    
-    public static EnumSet<BindingMode> parseString(final String bindingModeString) {
-    	final EnumSet<BindingMode> bindingmode = EnumSet.noneOf(BindingMode.class);
-    	if(bindingModeString != null && !bindingModeString.isEmpty()) {
-	    	final String[] bindingComponent = bindingModeString.split(".");
-	    	for(final String bm : bindingComponent) {
-	    		bindingmode.add(BindingMode.valueOf(bm));
-	    	}
-    	}
-    	return bindingmode;
-    }
+	}
+
+	public static String setToString(final EnumSet<BindingMode> bindingModes) {
+		final StringBuilder sb = new StringBuilder(); 
+		for(final BindingMode bindingMode : bindingModes) {
+			sb.append(bindingMode).append(" ");
+		}
+		return sb.toString();
+	}
+
+	public static EnumSet<BindingMode> parseString(final String bindingModeString) {
+		final EnumSet<BindingMode> bindingModes = EnumSet.noneOf(BindingMode.class);
+		if(bindingModeString != null && !bindingModeString.isEmpty()) {
+			final String[] bindingComponent = bindingModeString.split(".");
+			for(final String bm : bindingComponent) {
+				bindingModes.add(BindingMode.valueOf(bm));
+			}
+		}
+		return bindingModes;
+	}
 }

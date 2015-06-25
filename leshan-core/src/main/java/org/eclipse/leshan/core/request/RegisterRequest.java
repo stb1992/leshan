@@ -28,7 +28,7 @@ public class RegisterRequest implements UplinkRequest<RegisterResponse> {
     private String endpointName = null;
     private Long lifetime = null;
     private String lwVersion = null;
-    private EnumSet<BindingMode> bindingMode = null;
+    private EnumSet<BindingMode> bindingModes = null;
     private String smsNumber = null;
     private LinkObject[] objectLinks = null;
     private InetSocketAddress registrationEndpoint = null;
@@ -46,18 +46,18 @@ public class RegisterRequest implements UplinkRequest<RegisterResponse> {
         this.endpointName = endpointName;
         this.lifetime = lifetime;
         this.lwVersion = lwVersion;
-        this.bindingMode = bindingMode;
+        this.bindingModes = bindingMode;
         this.smsNumber = smsNumber;
         this.objectLinks = objectLinks;
     }
 
-    public RegisterRequest(final String endpointName, final Long lifetime, final String lwVersion, final EnumSet<BindingMode> bindingMode,
+    public RegisterRequest(final String endpointName, final Long lifetime, final String lwVersion, final EnumSet<BindingMode> bindingModes,
             final String smsNumber, final LinkObject[] objectLinks, final InetAddress sourceAddress, final int sourcePort,
             final InetSocketAddress registrationEndpoint, final String pskIdentity, final PublicKey publicKey) {
         this.endpointName = endpointName;
         this.lifetime = lifetime;
         this.lwVersion = lwVersion;
-        this.bindingMode = bindingMode;
+        this.bindingModes = bindingModes;
         this.smsNumber = smsNumber;
         this.objectLinks = objectLinks;
 
@@ -89,7 +89,7 @@ public class RegisterRequest implements UplinkRequest<RegisterResponse> {
     }
 
     public EnumSet<BindingMode> getBindingMode() {
-        return bindingMode;
+        return bindingModes;
     }
 
     public String getSmsNumber() {
