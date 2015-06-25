@@ -151,12 +151,11 @@ public class LeshanServer implements LwM2mServer {
             coapServer.addEndpoint(secureEndpoint);
             endpoints.add(secureEndpoint);
         	break;
-        case CLIENT:///not sure if this case is possible
         case SERVER:
         	endpoint = new TCPEndpoint((TCPConnectionConfig)config);
         	break;
         default:
-        	throw new IllegalArgumentException("A communication ROLE must be passed in");
+        	throw new IllegalArgumentException("A communication role must be passed in, only NODE and SERVER can be used for a LWM2M server");
         	
         }
         coapServer.addEndpoint(endpoint);

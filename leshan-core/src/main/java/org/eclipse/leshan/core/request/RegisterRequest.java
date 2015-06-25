@@ -41,12 +41,12 @@ public class RegisterRequest implements UplinkRequest<RegisterResponse> {
         this.endpointName = endpointName;
     }
 
-    public RegisterRequest(final String endpointName, final Long lifetime, final String lwVersion, final EnumSet<BindingMode> bindingMode,
+    public RegisterRequest(final String endpointName, final Long lifetime, final String lwVersion, final EnumSet<BindingMode> bindingModes,
             final String smsNumber, final LinkObject[] objectLinks) {
         this.endpointName = endpointName;
         this.lifetime = lifetime;
         this.lwVersion = lwVersion;
-        this.bindingModes = bindingMode;
+        this.bindingModes = bindingModes;
         this.smsNumber = smsNumber;
         this.objectLinks = objectLinks;
     }

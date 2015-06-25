@@ -48,12 +48,12 @@ public enum BindingMode {
 	public static String setToString(final EnumSet<BindingMode> bindingModes) {
 		final StringBuilder sb = new StringBuilder(); 
 		for(final BindingMode bindingMode : bindingModes) {
-			sb.append(bindingMode).append(" ");
+			sb.append(bindingMode);
 		}
 		return sb.toString();
 	}
 
-	public static EnumSet<BindingMode> parseString(final String bindingModeString) {
+	public static EnumSet<BindingMode> parseFromString(final String bindingModeString) {
 		final EnumSet<BindingMode> bindingModes = EnumSet.noneOf(BindingMode.class);
 		if(bindingModeString != null && !bindingModeString.isEmpty()) {
 			final String[] bindingComponent = bindingModeString.split(".");

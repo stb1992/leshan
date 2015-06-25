@@ -17,7 +17,6 @@ package org.eclipse.leshan.server.californium;
 
 import io.netty.channel.ChannelOption;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.EnumSet;
 
@@ -51,7 +50,11 @@ import org.slf4j.LoggerFactory;
  */
 public class LeshanServerBuilder {
 
-    private static final Logger LOG = LoggerFactory.getLogger(LeshanServer.class);
+	private static final Logger LOG = LoggerFactory.getLogger(LeshanServer.class);
+
+	/**default loopback address*/
+	private static final String LOCALHOST = "127.0.0.1";
+
 
 	/** IANA assigned UDP port for CoAP (so for LWM2M) */
 	public static final int PORT = 5683;
@@ -159,10 +162,12 @@ public class LeshanServerBuilder {
 
 		@Override
 		protected ConnectionConfig buildConnectionConfig() {
-			if (connectionConfig.getRemoteAddress() == null)
-				connectionConfig.setAddress("127.0.0.1");
-			if (connectionConfig.getRemotePort() == 0);
-			connectionConfig.setPort(PORT);
+			if (connectionConfig.getRemoteAddress() == null) {
+				connectionConfig.setAddress(LOCALHOST);
+			}
+			if (connectionConfig.getRemotePort() == 0) {
+				connectionConfig.setPort(PORT);
+			}
 			return connectionConfig;
 		}
 	}
@@ -226,9 +231,9 @@ public class LeshanServerBuilder {
 		@Override
 		protected ConnectionConfig buildConnectionConfig() {
 			if (localAddress == null)
-				localAddress = new InetSocketAddress((InetAddress) null, PORT);
+				localAddress = new InetSocketAddress(PORT);
 			if (localAddressSecure == null)
-				localAddressSecure = new InetSocketAddress((InetAddress) null, PORT_DTLS);
+				localAddressSecure = new InetSocketAddress(PORT_DTLS);
 			return new LeshanUDPConnnectionConfig(localAddress, localAddressSecure);
 		}
 	}

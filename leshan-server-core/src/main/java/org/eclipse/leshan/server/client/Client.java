@@ -31,7 +31,9 @@ import org.eclipse.leshan.util.Validate;
  */
 public class Client {
 
-    private static final long DEFAULT_LIFETIME_IN_SEC = 86400L;
+    private static final EnumSet<BindingMode> DEFAULT_BINDING_MODE = BindingMode.getBindingMode(BindingMode.U);
+
+	private static final long DEFAULT_LIFETIME_IN_SEC = 86400L;
 
     private static final String DEFAULT_LWM2M_VERSION = "1.0";
 
@@ -111,7 +113,7 @@ public class Client {
         this.registrationDate = registrationDate == null ? new Date() : registrationDate;
         this.lifeTimeInSec = lifetimeInSec == null ? DEFAULT_LIFETIME_IN_SEC : lifetimeInSec;
         this.lwM2mVersion = lwM2mVersion == null ? DEFAULT_LWM2M_VERSION : lwM2mVersion;
-        this.bindingModes = bindingMode == null ? BindingMode.getBindingMode(BindingMode.U) : bindingMode;
+        this.bindingModes = bindingMode == null ? DEFAULT_BINDING_MODE : bindingMode;
         this.smsNumber = smsNumber;
         this.registrationEndpointAddress = registrationEndpointAddress;
         this.lastUpdate = lastUpdate == null ? new Date() : lastUpdate;

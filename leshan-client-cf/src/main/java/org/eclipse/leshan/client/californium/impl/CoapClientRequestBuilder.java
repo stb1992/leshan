@@ -68,9 +68,9 @@ public class CoapClientRequestBuilder implements UplinkRequestVisitor {
         if (lwVersion != null)
             coapRequest.getOptions().addUriQuery("lwm2m=" + lwVersion);
 
-        final EnumSet<BindingMode> bindingMode = request.getBindingMode();
-        if (bindingMode != null)
-            coapRequest.getOptions().addUriQuery("b=" + bindingMode.toString());
+        final EnumSet<BindingMode> bindingModes = request.getBindingMode();
+        if (bindingModes != null)
+            coapRequest.getOptions().addUriQuery("b=" + BindingMode.setToString(bindingModes));
 
         final LinkObject[] linkObjects = request.getObjectLinks();
         String payload;
@@ -95,9 +95,9 @@ public class CoapClientRequestBuilder implements UplinkRequestVisitor {
         if (smsNumber != null)
             coapRequest.getOptions().addUriQuery("sms=" + smsNumber);
 
-        final EnumSet<BindingMode> bindingMode = request.getBindingMode();
-        if (bindingMode != null)
-            coapRequest.getOptions().addUriQuery("b=" + bindingMode.toString());
+        final EnumSet<BindingMode> bindingModes = request.getBindingMode();
+        if (bindingModes != null)
+            coapRequest.getOptions().addUriQuery("b=" + BindingMode.setToString(bindingModes));
 
         final LinkObject[] linkObjects = request.getObjectLinks();
         if (linkObjects != null)

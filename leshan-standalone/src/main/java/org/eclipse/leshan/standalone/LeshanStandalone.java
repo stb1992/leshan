@@ -64,7 +64,7 @@ public class LeshanStandalone {
 		final String ifaces = System.getenv("COAPSIFACE");
 		final String mainBindingMode = System.getenv("BINDING");
 
-		final EnumSet<BindingMode> bindingModes = BindingMode.parseString(mainBindingMode);
+		final EnumSet<BindingMode> bindingModes = BindingMode.parseFromString(mainBindingMode);
 
 		if(bindingModes.contains(BindingMode.T)) {
 			buildTCPStandaloneServer(iface);

@@ -169,7 +169,7 @@ public class LeshanClientBuilder {
 						+ b);
 			} else if(endpoint != null) {
 				throw new IllegalArgumentException("Leshan Client does not currently support 2 Transport mode simulatniously. Cannot support "
-						+ b + " and " + transportBindingMode + " at the same time");
+						+ b + " and " + transportBindingMode);
 			} else if (b.equals(BindingMode.C)) {
 				transportBindingMode = b;
 				final LeshanTCPConnectionConfig config = new LeshanTCPConnectionConfig(serverAddress.getHostName(), serverAddress.getPort(), 

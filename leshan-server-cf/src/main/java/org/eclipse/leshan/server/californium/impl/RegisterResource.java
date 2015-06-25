@@ -105,7 +105,7 @@ public class RegisterResource extends CoapResource {
         Long lifetime = null;
         String smsNumber = null;
         String lwVersion = null;
-        EnumSet<BindingMode> binding = null;
+        EnumSet<BindingMode> bindingModes = null;
         LinkObject[] objectLinks = null;
         // Get Params
         for (final String param : request.getOptions().getUriQuery()) {
@@ -118,7 +118,7 @@ public class RegisterResource extends CoapResource {
             } else if (param.startsWith(QUERY_PARAM_LWM2M_VERSION)) {
                 lwVersion = param.substring(6);
             } else if (param.startsWith(QUERY_PARAM_BINDING_MODE)) {
-                binding = BindingMode.parseString(param.substring(2));
+                bindingModes = BindingMode.parseFromString(param.substring(2));
             }
         }
         // Get object Links
@@ -135,7 +135,7 @@ public class RegisterResource extends CoapResource {
             rpk = ((SecureEndpoint) exchange.advanced().getEndpoint()).getRawPublicKey(request);
         }
 
-        final RegisterRequest registerRequest = new RegisterRequest(endpoint, lifetime, lwVersion, binding, smsNumber,
+        final RegisterRequest registerRequest = new RegisterRequest(endpoint, lifetime, lwVersion, bindingModes, smsNumber,
                 objectLinks, request.getSource(), request.getSourcePort(), registrationEndpoint, pskIdentity, rpk);
 
         // Handle request
@@ -217,7 +217,7 @@ public class RegisterResource extends CoapResource {
             } else if (param.startsWith(QUERY_PARAM_SMS)) {
                 smsNumber = param.substring(4);
             } else if (param.startsWith(QUERY_PARAM_BINDING_MODE)) {
-                binding = BindingMode.parseString(param.substring(2));
+                binding = BindingMode.parseFromString(param.substring(2));
             }
         }
         if (request.getPayload() != null && request.getPayload().length > 0) {
