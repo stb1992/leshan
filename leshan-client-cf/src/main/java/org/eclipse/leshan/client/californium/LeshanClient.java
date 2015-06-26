@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.californium.core.CoapServer;
 import org.eclipse.californium.core.network.CoAPEndpoint;
@@ -28,6 +27,7 @@ import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.leshan.client.LwM2mClient;
 import org.eclipse.leshan.client.californium.impl.CaliforniumLwM2mClientRequestPreSender;
 import org.eclipse.leshan.client.californium.impl.CaliforniumLwM2mClientRequestSender;
+import org.eclipse.leshan.client.californium.impl.LwM2mConnectionManager;
 import org.eclipse.leshan.client.californium.impl.ObjectResource;
 import org.eclipse.leshan.client.resource.LwM2mObjectEnabler;
 import org.eclipse.leshan.core.request.UplinkRequest;
@@ -42,31 +42,35 @@ import org.eclipse.leshan.util.Validate;
 public class LeshanClient implements LwM2mClient {
 
     private final CoapServer clientSideServer;
-    private final AtomicBoolean clientServerStarted = new AtomicBoolean(false);
     private final CaliforniumLwM2mClientRequestSender requestSender;
     private final List<LwM2mObjectEnabler> objectEnablers;
     private final CaliforniumLwM2mClientRequestPreSender requestPresender;
+    private final LwM2mConnectionManager lwM2mConnectionManager;
 
     public LeshanClient(final InetSocketAddress serverAddress, final List<LwM2mObjectEnabler> objectEnablers) {
-        this(new CoAPEndpoint(new InetSocketAddress("0", 0)), serverAddress, objectEnablers);
+        this(new CoAPEndpoint(new InetSocketAddress("0", 0)), serverAddress, objectEnablers, LwM2mConnectionManager
+                .createNullConnectionManager());
     }
 
     public LeshanClient(final InetSocketAddress clientAddress, final InetSocketAddress serverAddress,
             final List<LwM2mObjectEnabler> objectEnablers) {
-        this(new CoAPEndpoint(clientAddress), serverAddress, objectEnablers);
+        this(new CoAPEndpoint(clientAddress), serverAddress, objectEnablers, LwM2mConnectionManager
+                .createNullConnectionManager());
     }
 
     public LeshanClient(final Endpoint endpoint, final InetSocketAddress serverAddress,
-            final List<LwM2mObjectEnabler> objectEnablers) {
+            final List<LwM2mObjectEnabler> objectEnablers, final LwM2mConnectionManager lwM2mConnectionManager) {
 
         Validate.notNull(endpoint);
         Validate.notNull(serverAddress);
+        Validate.notNull(lwM2mConnectionManager);
         Validate.notNull(objectEnablers);
         Validate.notEmpty(objectEnablers);
 
         clientSideServer = new CoapServer();
         clientSideServer.addEndpoint(endpoint);
 
+        this.lwM2mConnectionManager = lwM2mConnectionManager;
         this.objectEnablers = new ArrayList<>(objectEnablers);
         final Set<ObjectResource> clientObjects = new HashSet<ObjectResource>();
         for (final LwM2mObjectEnabler enabler : objectEnablers) {
@@ -87,18 +91,18 @@ public class LeshanClient implements LwM2mClient {
     @Override
     public void start() {
         clientSideServer.start();
-        clientServerStarted.set(true);
+        lwM2mConnectionManager.synchStart();
     }
 
     @Override
     public void stop() {
         clientSideServer.stop();
-        clientServerStarted.set(false);
+        lwM2mConnectionManager.synchStop();
     }
 
     @Override
     public <T extends LwM2mResponse> T send(final UplinkRequest<T> request) {
-        if (!clientServerStarted.get()) {
+        if (!lwM2mConnectionManager.isConnected()) {
             throw new RuntimeException("Internal CoapServer is not started.");
         }
         request.accept(requestPresender);
@@ -108,7 +112,7 @@ public class LeshanClient implements LwM2mClient {
     @Override
     public <T extends LwM2mResponse> void send(final UplinkRequest<T> request,
             final ResponseConsumer<T> responseCallback, final ExceptionConsumer errorCallback) {
-        if (!clientServerStarted.get()) {
+        if (!lwM2mConnectionManager.isConnected()) {
             throw new RuntimeException("Internal CoapServer is not started.");
         }
         request.accept(requestPresender);
