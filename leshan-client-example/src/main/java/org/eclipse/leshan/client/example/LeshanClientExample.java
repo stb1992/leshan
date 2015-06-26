@@ -52,8 +52,8 @@ public class LeshanClientExample {
 
     public static void main(final String[] args) {
         if (args.length < 2 || args.length > 5) {
-            System.out
-                    .println("Usage:\njava -jar target/leshan-client-example-*-SNAPSHOT-jar-with-dependencies.jar [ClientIP] [ClientPort] ServerIP ServerPort [UDP|TCP|TLS]");
+            System.out.println("Usage:\njava -jar "
+                            + "target/leshan-client-example-*-SNAPSHOT-jar-with-dependencies.jar [ClientIP] [ClientPort] ServerIP ServerPort [UDP|TCP|TLS]");
         } else {
             switch (args.length) {
             case 2:
