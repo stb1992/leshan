@@ -12,11 +12,9 @@ import org.eclipse.leshan.core.request.UplinkRequestVisitor;
 public class CaliforniumLwM2mClientRequestPreSender implements UplinkRequestVisitor {
 
     private final Set<ObjectResource> clientObjects;
-    private final LeshanClient client;
 
     public CaliforniumLwM2mClientRequestPreSender(final Set<ObjectResource> clientObjects, final LeshanClient client) {
         this.clientObjects = clientObjects;
-        this.client = client;
     }
 
     @Override
