@@ -1,15 +1,15 @@
 /*******************************************************************************
  * Copyright (c) 2013-2015 Sierra Wireless and others.
- * 
+ *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * and Eclipse Distribution License v1.0 which accompany this distribution.
- * 
+ *
  * The Eclipse Public License is available at
  *    http://www.eclipse.org/legal/epl-v10.html
  * and the Eclipse Distribution License is available at
  *    http://www.eclipse.org/org/documents/edl-v10.html.
- * 
+ *
  * Contributors:
  *     Zebra Technologies - initial API and implementation
  *     Sierra Wireless, - initial API and implementation
@@ -46,7 +46,7 @@ import org.eclipse.leshan.core.response.RegisterResponse;
 import org.eclipse.leshan.core.response.ValueResponse;
 
 /*
- * To build: 
+ * To build:
  * mvn assembly:assembly -DdescriptorId=jar-with-dependencies
  * To use:
  * java -jar target/leshan-client-*-SNAPSHOT-jar-with-dependencies.jar 127.0.0.1 5683
@@ -62,10 +62,11 @@ public class LeshanClientExample {
 			System.out
 			.println("Usage:\njava -jar target/leshan-client-example-*-SNAPSHOT-jar-with-dependencies.jar [ClientIP] [ClientPort] ServerIP ServerPort");
 		} else {
-			if (args.length == 4)
+			if (args.length == 4) {
 				new LeshanClientExample(args[0], Integer.parseInt(args[1]), args[2], Integer.parseInt(args[3]));
-			else
+			} else {
 				new LeshanClientExample("0", 0, args[0], Integer.parseInt(args[1]));
+			}
 		}
 	}
 
@@ -86,7 +87,6 @@ public class LeshanClientExample {
 				.setLocalAddress(clientAddress)
 				.setServerAddress(serverAddress)
 				.addBindingModeTCPClient()
-				.setConnectionStateListener(new ConnectionListener())
 				//.secure()
 				//.setSSLContext(null)
 				//.configure()
@@ -141,7 +141,6 @@ public class LeshanClientExample {
 		@Override
 		public void stateChange(final ConnectionInfo info) {
 			switch(info.getConnectionState()) {
-			case TLS_HANDSHAKE_FAILED:
 			case CONNECTED_SECURE:
 				lock.lock();
 				try {

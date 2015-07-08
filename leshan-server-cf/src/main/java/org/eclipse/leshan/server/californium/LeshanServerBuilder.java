@@ -1,15 +1,15 @@
 /*******************************************************************************
  * Copyright (c) 2013-2015 Sierra Wireless and others.
- * 
+ *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * and Eclipse Distribution License v1.0 which accompany this distribution.
- * 
+ *
  * The Eclipse Public License is available at
  *    http://www.eclipse.org/legal/epl-v10.html
  * and the Eclipse Distribution License is available at
  *    http://www.eclipse.org/org/documents/edl-v10.html.
- * 
+ *
  * Contributors:
  *     Sierra Wireless - initial API and implementation
  *******************************************************************************/
@@ -25,7 +25,6 @@ import javax.net.ssl.SSLContext;
 import org.eclipse.californium.elements.config.ConnectionConfig;
 import org.eclipse.californium.elements.config.ConnectionConfig.CommunicationRole;
 import org.eclipse.californium.elements.config.TCPConnectionConfig.SSLCLientCertReq;
-import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 import org.eclipse.leshan.core.request.BindingMode;
 import org.eclipse.leshan.server.LwM2mServer;
 import org.eclipse.leshan.server.californium.impl.LeshanServer;
@@ -60,7 +59,7 @@ public class LeshanServerBuilder {
 	public static final int PORT = 5683;
 
 	/** IANA assigned UDP port for CoAP with DTLS (so for LWM2M) */
-	public static final int PORT_DTLS = 5684;    
+	public static final int PORT_DTLS = 5684;
 
 	public static LeshanTCPServerBuilder<?> getLeshanTCPServerBuilder() {
 		return new LeshanTCPServerBuilder();
@@ -110,14 +109,18 @@ public class LeshanServerBuilder {
 		}
 
 		public LeshanServer build() {
-			if (clientRegistry == null)
+			if (clientRegistry == null) {
 				clientRegistry = new ClientRegistryImpl();
-			if (securityRegistry == null)
+			}
+			if (securityRegistry == null) {
 				securityRegistry = new SecurityRegistryImpl();
-			if (observationRegistry == null)
+			}
+			if (observationRegistry == null) {
 				observationRegistry = new ObservationRegistryImpl();
-			if (modelProvider == null) 
+			}
+			if (modelProvider == null) {
 				modelProvider = new StandardModelProvider();
+			}
 
 			if(bindingModes.contains(BindingMode.Q) || bindingModes.contains(BindingMode.S)) {
 				LOG.info("Binding Modes Q and S are not supported in this verison, they will be omitted");
@@ -138,11 +141,6 @@ public class LeshanServerBuilder {
 		public LeshanTCPServerBuilder(){
 			super(BindingMode.T);
 			this.connectionConfig = new LeshanTCPConnectionConfig(CommunicationRole.SERVER);
-		}
-
-		public T setConnectionStateListener(final ConnectionStateListener connectionStateListener) {
-			connectionConfig.setConnectionStateListener(connectionStateListener);
-			return (T)this;
 		}
 
 		public <O> T addChannelOption(final ChannelOption<O> option, final O value) {
@@ -205,7 +203,7 @@ public class LeshanServerBuilder {
 			}
 			connectionConfig.setServerSSL(sslContext, req, supportedTLSVersion);
 			return connectionConfig;
-		}    
+		}
 	}
 
 	public static class LeshanUDPServerBuilder extends BasicLeshanServerBuilder<LeshanUDPServerBuilder>{
@@ -230,10 +228,12 @@ public class LeshanServerBuilder {
 
 		@Override
 		protected ConnectionConfig buildConnectionConfig() {
-			if (localAddress == null)
+			if (localAddress == null) {
 				localAddress = new InetSocketAddress(PORT);
-			if (localAddressSecure == null)
+			}
+			if (localAddressSecure == null) {
 				localAddressSecure = new InetSocketAddress(PORT_DTLS);
+			}
 			return new LeshanUDPConnnectionConfig(localAddress, localAddressSecure);
 		}
 	}

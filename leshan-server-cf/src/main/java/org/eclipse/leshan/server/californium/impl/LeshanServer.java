@@ -1,15 +1,15 @@
 /*******************************************************************************
  * Copyright (c) 2013-2015 Sierra Wireless and others.
- * 
+ *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * and Eclipse Distribution License v1.0 which accompany this distribution.
- * 
+ *
  * The Eclipse Public License is available at
  *    http://www.eclipse.org/legal/epl-v10.html
  * and the Eclipse Distribution License is available at
  *    http://www.eclipse.org/org/documents/edl-v10.html.
- * 
+ *
  * Contributors:
  *     Sierra Wireless - initial API and implementation
  *******************************************************************************/
@@ -23,10 +23,12 @@ import java.util.Set;
 import org.eclipse.californium.core.CoapServer;
 import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
-import org.eclipse.californium.core.network.tcp.TCPEndpoint;
+import org.eclipse.californium.core.network.config.NetworkConfig;
+import org.eclipse.californium.core.network.tcp.TcpServerEndpoint;
 import org.eclipse.californium.elements.config.ConnectionConfig;
 import org.eclipse.californium.elements.config.ConnectionConfig.CommunicationRole;
 import org.eclipse.californium.elements.config.TCPConnectionConfig;
+import org.eclipse.californium.elements.tcp.server.TcpServerConnector;
 import org.eclipse.californium.scandium.DTLSConnector;
 import org.eclipse.californium.scandium.dtls.cipher.CipherSuite;
 import org.eclipse.leshan.core.request.DownlinkRequest;
@@ -90,7 +92,7 @@ public class LeshanServer implements LwM2mServer {
      * @param publicKey for RPK authentication mode
      */
     public LeshanServer(final ClientRegistry clientRegistry, final SecurityRegistry securityRegistry,
-            		    final ObservationRegistry observationRegistry, final LwM2mModelProvider modelProvider, 
+            		    final ObservationRegistry observationRegistry, final LwM2mModelProvider modelProvider,
             		    final ConnectionConfig config) {
 
         Validate.notNull(config, "connectionConfig cannot be null");
@@ -128,7 +130,7 @@ public class LeshanServer implements LwM2mServer {
         // default endpoint
         coapServer = new CoapServer();
         final Set<Endpoint> endpoints = new HashSet<>();
-        
+
         Endpoint endpoint;
         switch(role) {
         case NODE:
@@ -152,11 +154,11 @@ public class LeshanServer implements LwM2mServer {
             endpoints.add(secureEndpoint);
         	break;
         case SERVER:
-        	endpoint = new TCPEndpoint((TCPConnectionConfig)config);
+				endpoint = new TcpServerEndpoint(new TcpServerConnector((TCPConnectionConfig)config), NetworkConfig.getStandard());
         	break;
         default:
         	throw new IllegalArgumentException("A communication role must be passed in, only NODE and SERVER can be used for a LWM2M server");
-        	
+
         }
         coapServer.addEndpoint(endpoint);
 
