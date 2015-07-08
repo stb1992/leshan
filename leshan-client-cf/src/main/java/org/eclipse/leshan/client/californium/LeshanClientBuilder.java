@@ -1,15 +1,15 @@
 /*******************************************************************************
  * Copyright (c) 2013-2015 Sierra Wireless and others.
- * 
+ *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * and Eclipse Distribution License v1.0 which accompany this distribution.
- * 
+ *
  * The Eclipse Public License is available at
  *    http://www.eclipse.org/legal/epl-v10.html
  * and the Eclipse Distribution License is available at
  *    http://www.eclipse.org/org/documents/edl-v10.html.
- * 
+ *
  * Contributors:
  *     Zebra Technologies - initial API and implementation
  *******************************************************************************/
@@ -34,9 +34,9 @@ import javax.net.ssl.SSLContext;
 import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.network.config.NetworkConfig;
-import org.eclipse.californium.core.network.tcp.TCPEndpoint;
+import org.eclipse.californium.core.network.tcp.TcpServerEndpoint;
 import org.eclipse.californium.elements.config.TCPConnectionConfig;
-import org.eclipse.californium.elements.tcp.ConnectionStateListener;
+import org.eclipse.californium.elements.tcp.server.TcpServerConnector;
 import org.eclipse.californium.scandium.DTLSConnector;
 import org.eclipse.californium.scandium.dtls.cipher.CipherSuite;
 import org.eclipse.californium.scandium.dtls.pskstore.StaticPskStore;
@@ -73,7 +73,7 @@ public class LeshanClientBuilder {
 
 	/**
 	 * Set the remote LW-M2M provider the client should connect to.
-	 * 
+	 *
 	 * @param remoteServer The particular LW-M2M provider to connect to it. If none is provided localhost:5683.
 	 * @return
 	 */
@@ -108,7 +108,7 @@ public class LeshanClientBuilder {
 
 	/**
 	 * Set the initializer used by the client to create objects, object instances and resources for the LW-M2M provider.
-	 * 
+	 *
 	 * @param initializer The particular initializer. If none is provided, a default initializer with default settings
 	 *        derived from the OMA LW-M2M JSON schema will be used.
 	 * @return
@@ -122,7 +122,7 @@ public class LeshanClientBuilder {
 
 	/**
 	 * Set the local address the client expects the LW-M2M provider to communicate back upon.
-	 * 
+	 *
 	 * @param localAddress The particular address. If none is provided, localhost with a randomly assigned port will be
 	 *        used.
 	 * @return
@@ -136,27 +136,32 @@ public class LeshanClientBuilder {
 
 	/**
 	 * Build a Leshan client.
-	 * 
+	 *
 	 * @param objectId An array of Objects the given ObjectInitializer should create upon starting the leshan client. If
 	 *        none are provided, the mandatory object instances as specified in the OMA LW-M2M JSON schema will be
 	 *        created.
 	 * @return the Leshan client.
 	 */
 	public LwM2mClient build(int... objectId) {
-		if (localAddress == null)
+		if (localAddress == null) {
 			localAddress = new InetSocketAddress("0", 0);
-		if (serverAddress == null)
+		}
+		if (serverAddress == null) {
 			serverAddress = new InetSocketAddress("0", PORT);
-		if (bindingModes.isEmpty())
+		}
+		if (bindingModes.isEmpty()) {
 			bindingModes.add(BindingMode.U);
-		if (initializer == null)
+		}
+		if (initializer == null) {
 			initializer = new ObjectsInitializer();
+		}
 		if (dtlsConfigBuilder == null) {
 			dtlsConfigBuilder = new DTLSConfigBuilder(this);
 			dtlsConfigBuilder.noSec();
 		}
-		if (objectId == null)
+		if (objectId == null) {
 			objectId = new int[] {};
+		}
 
 		final List<ObjectEnabler> objects = objectId.length == 0 ? initializer.createMandatory() : initializer
 				.create(objectId);
@@ -172,12 +177,14 @@ public class LeshanClientBuilder {
 						+ b + " and " + transportBindingMode);
 			} else if (b.equals(BindingMode.C)) {
 				transportBindingMode = b;
-				final LeshanTCPConnectionConfig config = new LeshanTCPConnectionConfig(serverAddress.getHostName(), serverAddress.getPort(), 
-						tcpConfiguration.isSharable, tcpConfiguration.listener);
+				final LeshanTCPConnectionConfig config = new LeshanTCPConnectionConfig(serverAddress.getHostName(), serverAddress.getPort(),
+						tcpConfiguration.isSharable);
 				if(tcpConfiguration.tlsConfigBuilder != null && tcpConfiguration.tlsConfigBuilder.isSecure) {
 					config.secure(tcpConfiguration.tlsConfigBuilder.sslContext);
 				}
-				endpoint = new TCPEndpoint(config);
+				final TcpServerConnector connector = new TcpServerConnector(config);
+				final NetworkConfig networkConfig = NetworkConfig.getStandard();
+				endpoint = new TcpServerEndpoint(connector, networkConfig);
 
 			} else if (b.equals(BindingMode.U)) {
 				transportBindingMode = b;
@@ -207,7 +214,6 @@ public class LeshanClientBuilder {
 
 	public class TCPConfigBuilder {
 		private boolean isSharable;
-		private ConnectionStateListener listener;
 		private final Map<ChannelOption<?>, Object> options = new HashMap<ChannelOption<?>, Object>();
 		private final LeshanClientBuilder clientBuilder;
 		private TLSConfigBuilder tlsConfigBuilder;
@@ -219,11 +225,6 @@ public class LeshanClientBuilder {
 
 		public TCPConfigBuilder makeConnectionSharable() {
 			this.isSharable = true;
-			return this;
-		}
-
-		public TCPConfigBuilder setConnectionStateListener(final ConnectionStateListener listener) {
-			this.listener = listener;
 			return this;
 		}
 
@@ -285,7 +286,7 @@ public class LeshanClientBuilder {
 
 		/**
 		 * Add PSK authentication to the LW-M2M server.
-		 * 
+		 *
 		 * @param pskIdentity the PSK Identity to use.
 		 * @param pskKey the PSK key to use.
 		 * @return
@@ -300,7 +301,7 @@ public class LeshanClientBuilder {
 
 		/**
 		 * Add RPK authentication to the LW-M2M server.
-		 * 
+		 *
 		 * @param clientPrivateKey the Private RPK key to use.
 		 * @param clientPublicKey thePublic RPK key to use.
 		 * @return
@@ -326,15 +327,12 @@ public class LeshanClientBuilder {
 		private final String remoteAddress;
 		private final int remotePort;
 		private final boolean makeSharable;
-		private final ConnectionStateListener listener;
 
-		private LeshanTCPConnectionConfig(final String remoteAddress, final int remotePort, 
-				final boolean makeSharable, final ConnectionStateListener listener) {
+		private LeshanTCPConnectionConfig(final String remoteAddress, final int remotePort, final boolean makeSharable) {
 			super(CommunicationRole.CLIENT);
 			this.remoteAddress = remoteAddress;
 			this.remotePort = remotePort;
 			this.makeSharable = makeSharable;
-			this.listener = listener;
 		}
 
 		private void secure(final SSLContext sslContext) {
@@ -354,11 +352,6 @@ public class LeshanClientBuilder {
 		@Override
 		public boolean isSharable() {
 			return makeSharable;
-		}
-
-		@Override
-		public ConnectionStateListener getListener() {
-			return listener;
 		}
 	}
 }
