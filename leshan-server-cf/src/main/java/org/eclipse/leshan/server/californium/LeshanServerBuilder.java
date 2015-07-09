@@ -143,12 +143,10 @@ public class LeshanServerBuilder {
             if (modelProvider == null)
                 modelProvider = new StandardModelProvider();
 
-            if (bindingModes.contains(BindingMode.Q) || bindingModes.contains(BindingMode.S)) {
+            if (bindingModes.contains(BindingMode.Q) || bindingModes.contains(BindingMode.S))
                 LOG.info("Binding Modes Q and S are not supported in this verison, they will be omitted");
-            }
 
             final Set<Endpoint> endpoints = buildEndpoints();
-            System.out.println("Built " + endpoints.size());
 
             return new LeshanServer(clientRegistry, securityRegistry, observationRegistry, modelProvider, endpoints);
         }
@@ -240,7 +238,7 @@ public class LeshanServerBuilder {
         @Override
         protected Set<Endpoint> buildEndpoints() {
             final Set<Endpoint> endpoints = new HashSet<>();
-            System.out.println("Building endpoints");
+
             endpoints
                     .add(new CoAPEndpoint(this.localAddress != null ? this.localAddress : new InetSocketAddress(PORT)));
 
