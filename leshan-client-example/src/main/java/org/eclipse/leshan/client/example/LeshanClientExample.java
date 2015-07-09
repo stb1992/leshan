@@ -221,7 +221,7 @@ public class LeshanClientExample {
         }
 
         private String getSerialNumber() {
-            return "SN-SIMON-000-001";
+            return "SN-LWM2M-000-001";
         }
 
         private String getFirmwareVersion() {
