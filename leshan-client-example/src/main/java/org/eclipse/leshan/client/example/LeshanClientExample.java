@@ -19,6 +19,8 @@
 package org.eclipse.leshan.client.example;
 
 import java.net.InetSocketAddress;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -27,6 +29,8 @@ import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
+
+import javax.net.ssl.SSLContext;
 
 import org.eclipse.leshan.ResponseCode;
 import org.eclipse.leshan.client.LwM2mClient;
@@ -50,7 +54,8 @@ import org.eclipse.leshan.core.response.ValueResponse;
 public class LeshanClientExample {
     private String registrationID;
 
-    public static void main(final String[] args) {
+    public static void main(final String[] args) throws KeyManagementException, NumberFormatException,
+            NoSuchAlgorithmException {
         if (args.length < 2 || args.length > 5) {
             System.out.println("Usage:\njava -jar "
                             + "target/leshan-client-example-*-SNAPSHOT-jar-with-dependencies.jar [ClientIP] [ClientPort] ServerIP ServerPort [UDP|TCP|TLS]");
@@ -72,7 +77,7 @@ public class LeshanClientExample {
     }
 
     public LeshanClientExample(final String localHostName, final int localPort, final String serverHostName,
-            final int serverPort, final String binding) {
+            final int serverPort, final String binding) throws NoSuchAlgorithmException, KeyManagementException {
 
         // Initialize object list
         final ObjectsInitializer initializer = new ObjectsInitializer();
@@ -91,8 +96,11 @@ public class LeshanClientExample {
                     .setServerAddress(serverAddress).addBindingModeTCPClient().configure().build();
             break;
         case "TLS":
+            final SSLContext context = SSLContext.getInstance("TLSV1.2");
+            context.init(null, null, null);
             client = builder.setObjectsInitializer(initializer).setLocalAddress(clientAddress)
-                    .setServerAddress(serverAddress).addBindingModeTCPClient().secure().setSSLContext(null).configure()
+                    .setServerAddress(serverAddress).addBindingModeTCPClient().secure().setSSLContext(context)
+                    .configure()
                     .configure().build();
             break;
         default:

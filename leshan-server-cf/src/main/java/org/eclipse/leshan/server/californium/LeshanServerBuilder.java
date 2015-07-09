@@ -28,7 +28,6 @@ import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.network.tcp.TcpServerEndpoint;
-import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 import org.eclipse.californium.elements.tcp.server.TcpServerConnector;
 import org.eclipse.californium.elements.tcp.server.TlsServerConnector;
 import org.eclipse.californium.elements.tcp.server.TlsServerConnector.SSLClientCertReq;
@@ -92,7 +91,6 @@ public class LeshanServerBuilder {
         protected LwM2mModelProvider modelProvider;
         protected String address;
         protected int port;
-        protected ConnectionStateListener connectionStateListener;
 
         private BasicLeshanServerBuilder(final BindingMode bMode) {
             bindingModes = BindingMode.getBindingMode(bMode);
@@ -125,11 +123,6 @@ public class LeshanServerBuilder {
 
         public E setPort(final int port) {
             this.port = port;
-            return (E) this;
-        }
-
-        public E setConnectionStateListener(final ConnectionStateListener listener) {
-            this.connectionStateListener = listener;
             return (E) this;
         }
 
@@ -169,7 +162,6 @@ public class LeshanServerBuilder {
         @Override
         protected Set<Endpoint> buildEndpoints() {
             final TcpServerConnector serverConnector = new TcpServerConnector(this.address != null ? this.address : LOCALHOST, this.port);
-            serverConnector.setConnectionStateListener(this.connectionStateListener);
 
             final Set<Endpoint> endpoints = new HashSet<>();
             endpoints.add(new TcpServerEndpoint(
@@ -206,7 +198,6 @@ public class LeshanServerBuilder {
             final TlsServerConnector serverConnector = new TlsServerConnector(this.address != null ? this.address : LOCALHOST, this.port, 
                     this.sslContext, this.req != null ? this.req : SSLClientCertReq.NONE, 
                     this.supportedTLSVersion != null ? this.supportedTLSVersion : new String[0]);
-            serverConnector.setConnectionStateListener(this.connectionStateListener);
 
             final Set<Endpoint> endpoints = new HashSet<>();
             endpoints.add(new TcpServerEndpoint(serverConnector, NetworkConfig.getStandard()));
