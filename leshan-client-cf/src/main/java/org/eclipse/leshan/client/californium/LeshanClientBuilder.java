@@ -35,14 +35,12 @@ import javax.net.ssl.SSLContext;
 import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.network.config.NetworkConfig;
-import org.eclipse.californium.core.network.tcp.TCPEndpoint;
-import org.eclipse.californium.elements.config.TCPConnectionConfig;
-import org.eclipse.californium.elements.tcp.ConnectionStateListener;
+import org.eclipse.californium.elements.tcp.client.TcpClientConnector;
+import org.eclipse.californium.elements.tcp.client.TlsClientConnector;
 import org.eclipse.californium.scandium.DTLSConnector;
 import org.eclipse.californium.scandium.dtls.cipher.CipherSuite;
 import org.eclipse.californium.scandium.dtls.pskstore.StaticPskStore;
 import org.eclipse.leshan.client.LwM2mClient;
-import org.eclipse.leshan.client.californium.impl.LwM2mConnectionManager;
 import org.eclipse.leshan.client.resource.LwM2mObjectEnabler;
 import org.eclipse.leshan.client.resource.ObjectEnabler;
 import org.eclipse.leshan.client.resource.ObjectsInitializer;
@@ -165,7 +163,6 @@ public class LeshanClientBuilder {
                 .create(objectId);
 
         Endpoint endpoint;
-        LwM2mConnectionManager lwM2mConnectionManager = null;
 
         if (bindingModes.contains(BindingMode.Q) || bindingModes.contains(BindingMode.S)
                 || bindingModes.contains(BindingMode.T)) {
@@ -178,16 +175,19 @@ public class LeshanClientBuilder {
         }
 
         if (bindingModes.contains(BindingMode.C)) {
-            final LeshanTCPConnectionConfig config = new LeshanTCPConnectionConfig(serverAddress.getHostName(),
-                    serverAddress.getPort(), tcpConfigBuilder.isSharable, tcpConfigBuilder.lwM2mConnectionManager);
             if (tcpConfigBuilder.tlsConfigBuilder != null) {
-                config.secure(tcpConfigBuilder.tlsConfigBuilder.sslContext);
+                final TlsClientConnector tlsClientConnector = new TlsClientConnector(serverAddress.getHostName(),
+                        serverAddress.getPort(), tcpConfigBuilder.tlsConfigBuilder.sslContext);
+                endpoint = new CoAPEndpoint(tlsClientConnector, NetworkConfig.getStandard());
+            } else {
+
+                final TcpClientConnector tcpClientConnector = new TcpClientConnector(serverAddress.getHostName(),
+                        serverAddress.getPort());
+                endpoint = new CoAPEndpoint(tcpClientConnector, NetworkConfig.getStandard());
             }
 
-            endpoint = new TCPEndpoint(config);
-            lwM2mConnectionManager = tcpConfigBuilder.lwM2mConnectionManager;
+
         } else {
-            lwM2mConnectionManager = LwM2mConnectionManager.createNullConnectionManager();
             if (dtlsConfigBuilder.securityModes.contains(SecurityMode.NO_SEC)) {
                 endpoint = new CoAPEndpoint(localAddress);
             } else {
@@ -211,20 +211,17 @@ public class LeshanClientBuilder {
             }
         }
 
-        return new LeshanClient(endpoint, serverAddress, new ArrayList<LwM2mObjectEnabler>(objects),
-                lwM2mConnectionManager);
+        return new LeshanClient(endpoint, serverAddress, new ArrayList<LwM2mObjectEnabler>(objects));
     }
 
     public class TCPConfigBuilder {
         private boolean isSharable;
-        private LwM2mConnectionManager lwM2mConnectionManager;
         private final Map<ChannelOption<?>, Object> options = new HashMap<ChannelOption<?>, Object>();
         private final LeshanClientBuilder clientBuilder;
         private TLSConfigBuilder tlsConfigBuilder;
 
         private TCPConfigBuilder(final LeshanClientBuilder clientBuilder) {
             this.clientBuilder = clientBuilder;
-            this.lwM2mConnectionManager = LwM2mConnectionManager.createNullConnectionManager();
         }
 
 
@@ -239,7 +236,6 @@ public class LeshanClientBuilder {
 
         public TLSConfigBuilder secure() {
             this.tlsConfigBuilder = new TLSConfigBuilder(this);
-            this.lwM2mConnectionManager = LwM2mConnectionManager.createTLSConnectionManager();
 
             return tlsConfigBuilder;
         }
@@ -281,11 +277,9 @@ public class LeshanClientBuilder {
         private PrivateKey privateKey;
         private PublicKey publicKey;
         private final Set<SecurityMode> securityModes = new HashSet<SecurityMode>();
-        private final LwM2mConnectionManager lwM2mConnectionManager;
 
         private DTLSConfigBuilder(final LeshanClientBuilder clientBuilder) {
             this.clientBuilder = clientBuilder;
-            this.lwM2mConnectionManager = LwM2mConnectionManager.createNullConnectionManager();
         }
 
         public DTLSConfigBuilder noSec() {
@@ -328,47 +322,6 @@ public class LeshanClientBuilder {
                 securityModes.add(SecurityMode.NO_SEC);
             }
             return clientBuilder;
-        }
-    }
-
-    private class LeshanTCPConnectionConfig extends TCPConnectionConfig {
-
-        private final String remoteAddress;
-        private final int remotePort;
-        private final boolean makeSharable;
-        private final ConnectionStateListener listener;
-
-        private LeshanTCPConnectionConfig(final String remoteAddress, final int remotePort, final boolean makeSharable,
-                final ConnectionStateListener listener) {
-            super(CommunicationRole.CLIENT);
-            this.remoteAddress = remoteAddress;
-            this.remotePort = remotePort;
-            this.makeSharable = makeSharable;
-            this.listener = listener;
-        }
-
-        private void secure(final SSLContext sslContext) {
-            setClientSSL(sslContext);
-        }
-
-        @Override
-        public String getRemoteAddress() {
-            return remoteAddress;
-        }
-
-        @Override
-        public int getRemotePort() {
-            return remotePort;
-        }
-
-        @Override
-        public boolean isSharable() {
-            return makeSharable;
-        }
-
-        @Override
-        public ConnectionStateListener getListener() {
-            return listener;
         }
     }
 
