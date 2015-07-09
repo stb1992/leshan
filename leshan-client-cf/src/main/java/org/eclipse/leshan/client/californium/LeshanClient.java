@@ -48,7 +48,7 @@ public class LeshanClient implements LwM2mClient {
     private final CaliforniumLwM2mClientRequestSender requestSender;
     private final List<LwM2mObjectEnabler> objectEnablers;
     private final CaliforniumLwM2mClientRequestPreSender requestPresender;
-    private final AtomicBoolean isConnected = new AtomicBoolean(false);
+    private final AtomicBoolean isConnected;
 
     public LeshanClient(final InetSocketAddress serverAddress, final List<LwM2mObjectEnabler> objectEnablers) {
         this(new CoAPEndpoint(new InetSocketAddress("0", 0)), serverAddress, objectEnablers);
@@ -66,6 +66,8 @@ public class LeshanClient implements LwM2mClient {
         Validate.notNull(serverAddress);
         Validate.notNull(objectEnablers);
         Validate.notEmpty(objectEnablers);
+
+        isConnected = new AtomicBoolean(false);
 
         clientSideServer = new CoapServer();
         clientSideServer.addEndpoint(endpoint);

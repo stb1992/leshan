@@ -127,7 +127,7 @@ public class LeshanStandalone {
 		final LeshanTcpServerBuilder<?> builder = LeshanServerBuilder.getLeshanTCPServerBuilder();
 		if (iface != null && !iface.isEmpty()) {
 			final String[] add = iface.split(":");
-			builder.setLocalAddress(add[0]).setPort(Integer.parseInt(add[1]));
+			builder.setAddress(add[0]).setPort(Integer.parseInt(add[1]));
 		} else {
 			LOG.error("No address as been specified, please enter arguement HOSTNAME, PORT for TCP");
 		}

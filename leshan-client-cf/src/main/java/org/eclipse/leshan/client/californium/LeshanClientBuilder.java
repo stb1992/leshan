@@ -165,14 +165,13 @@ public class LeshanClientBuilder {
         Endpoint endpoint;
 
         if (bindingModes.contains(BindingMode.Q) || bindingModes.contains(BindingMode.S)
-                || bindingModes.contains(BindingMode.T)) {
+                || bindingModes.contains(BindingMode.T))
             throw new IllegalArgumentException(
                     "Leshan Client does not currently support the selected Binding Modes Q, S or T.");
-        }
-        if (bindingModes.containsAll(Arrays.asList(BindingMode.C, BindingMode.U))) {
+
+        if (bindingModes.containsAll(Arrays.asList(BindingMode.C, BindingMode.U)))
             throw new IllegalArgumentException(
                     "Leshan Client does not currently support two Binding Modes simultaneously.");
-        }
 
         if (bindingModes.contains(BindingMode.C)) {
             if (tcpConfigBuilder.tlsConfigBuilder != null) {
