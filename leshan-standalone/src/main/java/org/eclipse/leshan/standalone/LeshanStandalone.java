@@ -40,7 +40,7 @@ import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.leshan.core.request.BindingMode;
 import org.eclipse.leshan.server.californium.LeshanServerBuilder;
 import org.eclipse.leshan.server.californium.LeshanServerBuilder.BasicLeshanServerBuilder;
-import org.eclipse.leshan.server.californium.LeshanServerBuilder.LeshanTCPServerBuilder;
+import org.eclipse.leshan.server.californium.LeshanServerBuilder.LeshanTcpServerBuilder;
 import org.eclipse.leshan.server.californium.LeshanServerBuilder.LeshanUDPServerBuilder;
 import org.eclipse.leshan.server.californium.impl.LeshanServer;
 import org.eclipse.leshan.server.impl.SecurityRegistryImpl;
@@ -124,10 +124,10 @@ public class LeshanStandalone {
 	//offer a secure connection as well
 	private void buildTCPStandaloneServer(final String iface) {
 		// Build LWM2M server
-		final LeshanTCPServerBuilder<?> builder = LeshanServerBuilder.getLeshanTCPServerBuilder();
+		final LeshanTcpServerBuilder<?> builder = LeshanServerBuilder.getLeshanTCPServerBuilder();
 		if (iface != null && !iface.isEmpty()) {
 			final String[] add = iface.split(":");
-			builder.setLocalAddress(add[0]).setPort(Integer.parseInt(add[1]));
+			builder.setAddress(add[0]).setPort(Integer.parseInt(add[1]));
 		} else {
 			LOG.error("No address as been specified, please enter arguement HOSTNAME, PORT for TCP");
 		}
