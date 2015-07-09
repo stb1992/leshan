@@ -215,11 +215,12 @@ public class LeshanClientBuilder {
 
     public class TCPConfigBuilder {
         private boolean isSharable;
-        private final Map<ChannelOption<?>, Object> options = new HashMap<ChannelOption<?>, Object>();
+        private final Map<ChannelOption<?>, Object> options;
         private final LeshanClientBuilder clientBuilder;
         private TLSConfigBuilder tlsConfigBuilder;
 
         private TCPConfigBuilder(final LeshanClientBuilder clientBuilder) {
+            this.options = new HashMap<ChannelOption<?>, Object>();
             this.clientBuilder = clientBuilder;
         }
 
@@ -246,10 +247,11 @@ public class LeshanClientBuilder {
 
     public class TLSConfigBuilder {
         private final TCPConfigBuilder clientBuilder;
-        private boolean isSecure = true;
+        private boolean isSecure;
         private SSLContext sslContext;
 
         private TLSConfigBuilder(final TCPConfigBuilder clientBuilder) {
+            this.isSecure = true;
             this.clientBuilder = clientBuilder;
         }
 
@@ -275,9 +277,10 @@ public class LeshanClientBuilder {
         private byte[] pskKey;
         private PrivateKey privateKey;
         private PublicKey publicKey;
-        private final Set<SecurityMode> securityModes = new HashSet<SecurityMode>();
+        private final Set<SecurityMode> securityModes;
 
         private DTLSConfigBuilder(final LeshanClientBuilder clientBuilder) {
+            this.securityModes = new HashSet<SecurityMode>();
             this.clientBuilder = clientBuilder;
         }
 

@@ -91,8 +91,7 @@ public class LeshanClient implements LwM2mClient {
 
     @Override
     public void start() {
-        if (!isConnected.get()) {
-            isConnected.set(true);
+        if (isConnected.compareAndSet(false, true)) {
             try {
                 final Map<InetSocketAddress, Future<?>> futures = clientSideServer.start();
                 for (final Future<?> f : futures.values()) {
@@ -107,8 +106,7 @@ public class LeshanClient implements LwM2mClient {
 
     @Override
     public void stop() {
-        if (isConnected.get()) {
-            isConnected.set(false);
+        if (isConnected.compareAndSet(true, false)) {
             final Map<InetSocketAddress, Future<?>> futures = clientSideServer.stop();
             try {
                 for (final Future<?> f : futures.values()) {
