@@ -96,7 +96,7 @@ public class LeshanClientExample {
                     .setServerAddress(serverAddress).addBindingModeTCPClient().configure().build();
             break;
         case "TLS":
-            final SSLContext context = SSLContext.getInstance("TLSV1.2");
+            final SSLContext context = SSLContext.getInstance("TLSv1.2");
             context.init(null, null, null);
             client = builder.setObjectsInitializer(initializer).setLocalAddress(clientAddress)
                     .setServerAddress(serverAddress).addBindingModeTCPClient().secure().setSSLContext(context)
