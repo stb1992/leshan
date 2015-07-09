@@ -15,22 +15,30 @@
  *******************************************************************************/
 package org.eclipse.leshan.server.californium;
 
-import io.netty.channel.ChannelOption;
-
 import java.net.InetSocketAddress;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.net.ssl.SSLContext;
 
-import org.eclipse.californium.elements.config.ConnectionConfig;
-import org.eclipse.californium.elements.config.ConnectionConfig.CommunicationRole;
-import org.eclipse.californium.elements.config.TCPConnectionConfig.SSLCLientCertReq;
+import org.eclipse.californium.core.network.CoAPEndpoint;
+import org.eclipse.californium.core.network.Endpoint;
+import org.eclipse.californium.core.network.config.NetworkConfig;
+import org.eclipse.californium.core.network.tcp.TcpServerEndpoint;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
+import org.eclipse.californium.elements.tcp.server.TcpServerConnector;
+import org.eclipse.californium.elements.tcp.server.TlsServerConnector;
+import org.eclipse.californium.elements.tcp.server.TlsServerConnector.SSLClientCertReq;
+import org.eclipse.californium.scandium.DTLSConnector;
+import org.eclipse.californium.scandium.dtls.cipher.CipherSuite;
 import org.eclipse.leshan.core.request.BindingMode;
 import org.eclipse.leshan.server.LwM2mServer;
 import org.eclipse.leshan.server.californium.impl.LeshanServer;
-import org.eclipse.leshan.server.californium.impl.LeshanTCPConnectionConfig;
-import org.eclipse.leshan.server.californium.impl.LeshanUDPConnnectionConfig;
+import org.eclipse.leshan.server.californium.impl.LwM2mPskStore;
+import org.eclipse.leshan.server.californium.impl.SecureEndpoint;
 import org.eclipse.leshan.server.client.ClientRegistry;
 import org.eclipse.leshan.server.impl.ClientRegistryImpl;
 import org.eclipse.leshan.server.impl.ObservationRegistryImpl;
@@ -39,7 +47,6 @@ import org.eclipse.leshan.server.model.LwM2mModelProvider;
 import org.eclipse.leshan.server.model.StandardModelProvider;
 import org.eclipse.leshan.server.observation.ObservationRegistry;
 import org.eclipse.leshan.server.security.SecurityRegistry;
-import org.eclipse.leshan.util.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,191 +57,211 @@ import org.slf4j.LoggerFactory;
  */
 public class LeshanServerBuilder {
 
-	private static final Logger LOG = LoggerFactory.getLogger(LeshanServer.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LeshanServer.class);
 
-	/**default loopback address*/
-	private static final String LOCALHOST = "127.0.0.1";
-
-
-	/** IANA assigned UDP port for CoAP (so for LWM2M) */
-	public static final int PORT = 5683;
-
-	/** IANA assigned UDP port for CoAP with DTLS (so for LWM2M) */
-	public static final int PORT_DTLS = 5684;    
-
-	public static LeshanTCPServerBuilder<?> getLeshanTCPServerBuilder() {
-		return new LeshanTCPServerBuilder();
-
-	}
-
-	public static LeshanTLSServerBuilder getLeshanTLSServerBuilder() {
-		return new LeshanTLSServerBuilder();
-	}
-
-	public static LeshanUDPServerBuilder getLeshanUDPServerBuilder() {
-		return new LeshanUDPServerBuilder();
-
-	}
-
-	public static abstract class BasicLeshanServerBuilder<E extends BasicLeshanServerBuilder<E>> {
-
-		private final EnumSet<BindingMode> bindingModes;
-
-		protected SecurityRegistry securityRegistry;
-		protected ObservationRegistry observationRegistry;
-		protected ClientRegistry clientRegistry;
-		protected LwM2mModelProvider modelProvider;
-
-		private BasicLeshanServerBuilder(final BindingMode bMode){
-			bindingModes = BindingMode.getBindingMode(bMode);
-		}
-
-		public E setClientRegistry(final ClientRegistry clientRegistry) {
-			this.clientRegistry = clientRegistry;
-			return (E)this;
-		}
-
-		public E setObservationRegistry(final ObservationRegistry observationRegistry) {
-			this.observationRegistry = observationRegistry;
-			return (E) this;
-		}
-
-		public E setSecurityRegistry(final SecurityRegistry securityRegistry) {
-			this.securityRegistry = securityRegistry;
-			return (E) this;
-		}
-
-		public E setObjectModelProvider(final LwM2mModelProvider objectModelProvider) {
-			this.modelProvider = objectModelProvider;
-			return (E)this;
-		}
-
-		public LeshanServer build() {
-			if (clientRegistry == null)
-				clientRegistry = new ClientRegistryImpl();
-			if (securityRegistry == null)
-				securityRegistry = new SecurityRegistryImpl();
-			if (observationRegistry == null)
-				observationRegistry = new ObservationRegistryImpl();
-			if (modelProvider == null) 
-				modelProvider = new StandardModelProvider();
-
-			if(bindingModes.contains(BindingMode.Q) || bindingModes.contains(BindingMode.S)) {
-				LOG.info("Binding Modes Q and S are not supported in this verison, they will be omitted");
-			}
-
-			final ConnectionConfig connectionConfig = buildConnectionConfig();
-
-			return new LeshanServer(clientRegistry, securityRegistry, observationRegistry, modelProvider, connectionConfig);
-		}
-
-		protected abstract ConnectionConfig buildConnectionConfig();
-	}
-
-	public static class LeshanTCPServerBuilder<T extends LeshanTCPServerBuilder<T>> extends BasicLeshanServerBuilder<T>{
-
-		protected final LeshanTCPConnectionConfig connectionConfig;
-
-		public LeshanTCPServerBuilder(){
-			super(BindingMode.T);
-			this.connectionConfig = new LeshanTCPConnectionConfig(CommunicationRole.SERVER);
-		}
-
-		public T setConnectionStateListener(final ConnectionStateListener connectionStateListener) {
-			connectionConfig.setConnectionStateListener(connectionStateListener);
-			return (T)this;
-		}
-
-		public <O> T addChannelOption(final ChannelOption<O> option, final O value) {
-			connectionConfig.addChannelOption(option, value);
-			return (T)this;
-		}
-
-		public T setLocalAddress(final String address) {
-			connectionConfig.setAddress(address);
-			return (T)this;
-		}
-
-		public T setPort(final int port) {
-			connectionConfig.setPort(port);
-			return (T)this;
-		}
-
-		@Override
-		protected ConnectionConfig buildConnectionConfig() {
-			if (connectionConfig.getRemoteAddress() == null) {
-				connectionConfig.setAddress(LOCALHOST);
-			}
-			if (connectionConfig.getRemotePort() == 0) {
-				connectionConfig.setPort(PORT);
-			}
-			return connectionConfig;
-		}
-	}
-
-	public static class LeshanTLSServerBuilder extends LeshanTCPServerBuilder<LeshanTLSServerBuilder>{
-
-		protected SSLContext sslContext;
-		protected SSLCLientCertReq req;
-		protected String[] supportedTLSVersion;
+    /** default loopback address */
+    private static final String LOCALHOST = "127.0.0.1";
 
 
-		public LeshanTLSServerBuilder setSSLContext(final SSLContext sslContext) {
-			this.sslContext = sslContext;
-			return this;
-		}
+    /** IANA assigned UDP port for CoAP (so for LWM2M) */
+    public static final int PORT = 5683;
 
-		public LeshanTLSServerBuilder setSSLClientCertReq(final SSLCLientCertReq req) {
-			this.req = req;
-			return this;
-		}
+    /** IANA assigned UDP port for CoAP with DTLS (so for LWM2M) */
+    public static final int PORT_DTLS = 5684;
 
-		public LeshanTLSServerBuilder setSupportedTLSVersion(final String... supportedTLSVersion) {
-			this.supportedTLSVersion = supportedTLSVersion;
-			return this;
-		}
+    public static LeshanTcpServerBuilder<?> getLeshanTCPServerBuilder() {
+        return new LeshanTcpServerBuilder();
+    }
 
-		@Override
-		protected ConnectionConfig buildConnectionConfig() {
-			Validate.notNull(sslContext, "SSLContext cannot be null is using TLS Connector");
-			if(req == null) {
-				req = SSLCLientCertReq.NONE;
-			}
-			if(supportedTLSVersion == null) {
-				supportedTLSVersion = new String[0];
-			}
-			connectionConfig.setServerSSL(sslContext, req, supportedTLSVersion);
-			return connectionConfig;
-		}    
-	}
+    public static LeshanTlsServerBuilder getLeshanTLSServerBuilder() {
+        return new LeshanTlsServerBuilder();
+    }
 
-	public static class LeshanUDPServerBuilder extends BasicLeshanServerBuilder<LeshanUDPServerBuilder>{
+    public static LeshanUDPServerBuilder getLeshanUDPServerBuilder() {
+        return new LeshanUDPServerBuilder();
 
-		private InetSocketAddress localAddress;
-		private InetSocketAddress localAddressSecure;
+    }
 
-		private LeshanUDPServerBuilder(){
-			super(BindingMode.U);
-		}
+    public static abstract class BasicLeshanServerBuilder<E extends BasicLeshanServerBuilder<E>> {
+
+        private final EnumSet<BindingMode> bindingModes;
+
+        protected SecurityRegistry securityRegistry;
+        protected ObservationRegistry observationRegistry;
+        protected ClientRegistry clientRegistry;
+        protected LwM2mModelProvider modelProvider;
+        protected String address;
+        protected int port;
+        protected ConnectionStateListener connectionStateListener;
+
+        private BasicLeshanServerBuilder(final BindingMode bMode) {
+            bindingModes = BindingMode.getBindingMode(bMode);
+        }
+
+        public E setClientRegistry(final ClientRegistry clientRegistry) {
+            this.clientRegistry = clientRegistry;
+            return (E) this;
+        }
+
+        public E setObservationRegistry(final ObservationRegistry observationRegistry) {
+            this.observationRegistry = observationRegistry;
+            return (E) this;
+        }
+
+        public E setSecurityRegistry(final SecurityRegistry securityRegistry) {
+            this.securityRegistry = securityRegistry;
+            return (E) this;
+        }
+
+        public E setObjectModelProvider(final LwM2mModelProvider objectModelProvider) {
+            this.modelProvider = objectModelProvider;
+            return (E) this;
+        }
+
+        public E setAddress(final String address) {
+            this.address = address;
+            return (E) this;
+        }
+
+        public E setPort(final int port) {
+            this.port = port;
+            return (E) this;
+        }
+
+        public E setConnectionStateListener(final ConnectionStateListener listener) {
+            this.connectionStateListener = listener;
+            return (E) this;
+        }
+
+        public LeshanServer build() {
+            if (clientRegistry == null)
+                clientRegistry = new ClientRegistryImpl();
+            if (securityRegistry == null)
+                securityRegistry = new SecurityRegistryImpl();
+            if (observationRegistry == null)
+                observationRegistry = new ObservationRegistryImpl();
+            if (modelProvider == null)
+                modelProvider = new StandardModelProvider();
+
+            if (bindingModes.contains(BindingMode.Q) || bindingModes.contains(BindingMode.S)) {
+                LOG.info("Binding Modes Q and S are not supported in this verison, they will be omitted");
+            }
+
+            final Set<Endpoint> endpoints = buildEndpoints();
+            System.out.println("Built " + endpoints.size());
+
+            return new LeshanServer(clientRegistry, securityRegistry, observationRegistry, modelProvider, endpoints);
+        }
+
+        protected abstract Set<Endpoint> buildEndpoints();
+    }
+
+    public static class LeshanTcpServerBuilder<T extends LeshanTcpServerBuilder<T>> extends BasicLeshanServerBuilder<T> {
+
+        public LeshanTcpServerBuilder() {
+            super(BindingMode.T);
+        }
+
+        // TODO add this in if needed
+        // public <O> T addChannelOption(final ChannelOption<O> option, final O value) {
+        // connectionConfig.addChannelOption(option, value);
+        // return (T) this;
+        // }
+
+        @Override
+        protected Set<Endpoint> buildEndpoints() {
+            final TcpServerConnector serverConnector = new TcpServerConnector(this.address != null ? this.address : LOCALHOST, this.port);
+            serverConnector.setConnectionStateListener(this.connectionStateListener);
+
+            final Set<Endpoint> endpoints = new HashSet<>();
+            endpoints.add(new TcpServerEndpoint(
+                    serverConnector, NetworkConfig.getStandard()));
+
+            return endpoints;
+        }
+    }
+
+    public static class LeshanTlsServerBuilder extends LeshanTcpServerBuilder<LeshanTlsServerBuilder> {
+
+        protected SSLContext sslContext;
+        protected SSLClientCertReq req;
+        protected String[] supportedTLSVersion;
 
 
-		public LeshanUDPServerBuilder setLocalAddress(final String hostname, final int port) {
-			this.localAddress = new InetSocketAddress(hostname, port);
-			return this;
-		}
+        public LeshanTlsServerBuilder setSSLContext(final SSLContext sslContext) {
+            this.sslContext = sslContext;
+            return this;
+        }
 
-		public LeshanUDPServerBuilder setLocalAddressSecure(final String hostname, final int port) {
-			this.localAddressSecure = new InetSocketAddress(hostname, port);
-			return this;
-		}
+        public LeshanTlsServerBuilder setSSLClientCertReq(final SSLClientCertReq req) {
+            this.req = req;
+            return this;
+        }
 
-		@Override
-		protected ConnectionConfig buildConnectionConfig() {
-			if (localAddress == null)
-				localAddress = new InetSocketAddress(PORT);
-			if (localAddressSecure == null)
-				localAddressSecure = new InetSocketAddress(PORT_DTLS);
-			return new LeshanUDPConnnectionConfig(localAddress, localAddressSecure);
-		}
-	}
+        public LeshanTlsServerBuilder setSupportedTLSVersion(final String... supportedTLSVersion) {
+            this.supportedTLSVersion = supportedTLSVersion;
+            return this;
+        }
+
+        @Override
+        protected Set<Endpoint> buildEndpoints() {
+            final TlsServerConnector serverConnector = new TlsServerConnector(this.address != null ? this.address : LOCALHOST, this.port, 
+                    this.sslContext, this.req != null ? this.req : SSLClientCertReq.NONE, 
+                    this.supportedTLSVersion != null ? this.supportedTLSVersion : new String[0]);
+            serverConnector.setConnectionStateListener(this.connectionStateListener);
+
+            final Set<Endpoint> endpoints = new HashSet<>();
+            endpoints.add(new TcpServerEndpoint(serverConnector, NetworkConfig.getStandard()));
+
+            return endpoints;
+        }
+    }
+
+    public static class LeshanUDPServerBuilder extends BasicLeshanServerBuilder<LeshanUDPServerBuilder> {
+
+        private InetSocketAddress localAddress;
+        private InetSocketAddress localAddressSecure;
+
+        private LeshanUDPServerBuilder() {
+            super(BindingMode.U);
+        }
+
+
+        public LeshanUDPServerBuilder setLocalAddress(final String hostname, final int port) {
+            this.localAddress = new InetSocketAddress(hostname, port);
+            return this;
+        }
+
+        public LeshanUDPServerBuilder setLocalAddressSecure(final String hostname, final int port) {
+            this.localAddressSecure = new InetSocketAddress(hostname, port);
+            return this;
+        }
+
+        @Override
+        protected Set<Endpoint> buildEndpoints() {
+            final Set<Endpoint> endpoints = new HashSet<>();
+            System.out.println("Building endpoints");
+            endpoints
+                    .add(new CoAPEndpoint(this.localAddress != null ? this.localAddress : new InetSocketAddress(PORT)));
+
+            // secure endpoint
+            final DTLSConnector connector = new DTLSConnector(this.localAddressSecure != null ? this.localAddressSecure
+                    : new InetSocketAddress(PORT_DTLS));
+            connector.getConfig().setPskStore(new LwM2mPskStore(this.securityRegistry, this.clientRegistry));
+            final PrivateKey privateKey = this.securityRegistry.getServerPrivateKey();
+            final PublicKey publicKey = this.securityRegistry.getServerPublicKey();
+            if (privateKey != null && publicKey != null) {
+                connector.getConfig().setPrivateKey(privateKey, publicKey);
+                // TODO this should be automatically done by scandium
+                connector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8);
+            } else {
+                // TODO this should be automatically done by scandium
+                connector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_PSK_WITH_AES_128_CCM_8);
+            }
+            final Endpoint secureEndpoint = new SecureEndpoint(connector);
+            endpoints.add(secureEndpoint);
+
+            return endpoints;
+        }
+    }
 }

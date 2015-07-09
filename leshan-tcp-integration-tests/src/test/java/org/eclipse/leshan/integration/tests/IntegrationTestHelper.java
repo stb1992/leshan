@@ -22,7 +22,7 @@ import org.eclipse.leshan.client.LwM2mClient;
 import org.eclipse.leshan.client.californium.LeshanClientBuilder;
 import org.eclipse.leshan.server.LwM2mServer;
 import org.eclipse.leshan.server.californium.LeshanServerBuilder;
-import org.eclipse.leshan.server.californium.LeshanServerBuilder.LeshanTCPServerBuilder;
+import org.eclipse.leshan.server.californium.LeshanServerBuilder.LeshanTcpServerBuilder;
 import org.eclipse.leshan.server.client.Client;
 import org.eclipse.leshan.server.impl.SecurityRegistryImpl;
 
@@ -49,8 +49,8 @@ public class IntegrationTestHelper {
     }
 
     public void createServer() {
-        final LeshanTCPServerBuilder<?> builder = LeshanServerBuilder.getLeshanTCPServerBuilder();
-        builder.setLocalAddress(LOCALHOST);
+        final LeshanTcpServerBuilder<?> builder = LeshanServerBuilder.getLeshanTCPServerBuilder();
+        builder.setAddress(LOCALHOST);
         builder.setPort(PORT);
         builder.setSecurityRegistry(new SecurityRegistryImpl() {
             // TODO we should separate SecurityRegistryImpl in 2 registries :

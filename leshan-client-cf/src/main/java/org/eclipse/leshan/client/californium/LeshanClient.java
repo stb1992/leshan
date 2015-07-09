@@ -89,34 +89,32 @@ public class LeshanClient implements LwM2mClient {
 
     @Override
     public void start() {
-        if (isConnected.get()) {
-            throw new RuntimeException("Internal CoapServer is already started.");
-        }
-        isConnected.set(true);
-        try {
-            final Map<InetSocketAddress, Future<?>> futures = clientSideServer.start();
-            for (final Future<?> f : futures.values()) {
-                f.get();
+        if (!isConnected.get()) {
+            isConnected.set(true);
+            try {
+                final Map<InetSocketAddress, Future<?>> futures = clientSideServer.start();
+                for (final Future<?> f : futures.values()) {
+                    f.get();
+                }
+            } catch (ExecutionException | InterruptedException e) {
+                isConnected.set(false);
+                throw new RuntimeException("Execution exception on start", e);
             }
-        } catch (ExecutionException | InterruptedException e) {
-            isConnected.set(false);
-            throw new RuntimeException("Execution exception on start", e);
         }
     }
 
     @Override
     public void stop() {
-        if (!isConnected.get()) {
-            throw new RuntimeException("Internal CoapServer is already stopped.");
-        }
-        isConnected.set(false);
-        final Map<InetSocketAddress, Future<?>> futures = clientSideServer.stop();
-        try {
-            for (final Future<?> f : futures.values()) {
-                f.get();
+        if (isConnected.get()) {
+            isConnected.set(false);
+            final Map<InetSocketAddress, Future<?>> futures = clientSideServer.stop();
+            try {
+                for (final Future<?> f : futures.values()) {
+                    f.get();
+                }
+            } catch (ExecutionException | InterruptedException e) {
+                throw new RuntimeException("Execution exception on start", e);
             }
-        } catch (ExecutionException | InterruptedException e) {
-            throw new RuntimeException("Execution exception on start", e);
         }
     }
 
