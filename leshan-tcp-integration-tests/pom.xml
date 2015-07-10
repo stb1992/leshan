@@ -19,7 +19,7 @@ Contributors:
     <parent>
         <groupId>org.eclipse.leshan</groupId>
         <artifactId>leshan</artifactId>
-        <version>99.0.0-SNAPSHOT</version>
+        <version>99.0.4-SNAPSHOT</version>
     </parent>
     <artifactId>leshan-tcp-integration-tests</artifactId>
     <name>leshan - tcp - integration tests</name>

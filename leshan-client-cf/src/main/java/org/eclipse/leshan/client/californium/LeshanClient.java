@@ -19,7 +19,10 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.californium.core.CoapServer;
@@ -42,10 +45,10 @@ import org.eclipse.leshan.util.Validate;
 public class LeshanClient implements LwM2mClient {
 
     private final CoapServer clientSideServer;
-    private final AtomicBoolean clientServerStarted = new AtomicBoolean(false);
     private final CaliforniumLwM2mClientRequestSender requestSender;
     private final List<LwM2mObjectEnabler> objectEnablers;
     private final CaliforniumLwM2mClientRequestPreSender requestPresender;
+    private final AtomicBoolean isConnected;
 
     public LeshanClient(final InetSocketAddress serverAddress, final List<LwM2mObjectEnabler> objectEnablers) {
         this(new CoAPEndpoint(new InetSocketAddress("0", 0)), serverAddress, objectEnablers);
@@ -63,6 +66,8 @@ public class LeshanClient implements LwM2mClient {
         Validate.notNull(serverAddress);
         Validate.notNull(objectEnablers);
         Validate.notEmpty(objectEnablers);
+
+        isConnected = new AtomicBoolean(false);
 
         clientSideServer = new CoapServer();
         clientSideServer.addEndpoint(endpoint);
@@ -86,19 +91,36 @@ public class LeshanClient implements LwM2mClient {
 
     @Override
     public void start() {
-        clientSideServer.start();
-        clientServerStarted.set(true);
+        if (isConnected.compareAndSet(false, true)) {
+            try {
+                final Map<InetSocketAddress, Future<?>> futures = clientSideServer.start();
+                for (final Future<?> f : futures.values()) {
+                    f.get();
+                }
+            } catch (ExecutionException | InterruptedException e) {
+                isConnected.set(false);
+                throw new RuntimeException("Execution exception on start", e);
+            }
+        }
     }
 
     @Override
     public void stop() {
-        clientSideServer.stop();
-        clientServerStarted.set(false);
+        if (isConnected.compareAndSet(true, false)) {
+            final Map<InetSocketAddress, Future<?>> futures = clientSideServer.stop();
+            try {
+                for (final Future<?> f : futures.values()) {
+                    f.get();
+                }
+            } catch (ExecutionException | InterruptedException e) {
+                throw new RuntimeException("Execution exception on start", e);
+            }
+        }
     }
 
     @Override
     public <T extends LwM2mResponse> T send(final UplinkRequest<T> request) {
-        if (!clientServerStarted.get()) {
+        if (!isConnected.get()) {
             throw new RuntimeException("Internal CoapServer is not started.");
         }
         request.accept(requestPresender);
@@ -108,7 +130,7 @@ public class LeshanClient implements LwM2mClient {
     @Override
     public <T extends LwM2mResponse> void send(final UplinkRequest<T> request,
             final ResponseConsumer<T> responseCallback, final ExceptionConsumer errorCallback) {
-        if (!clientServerStarted.get()) {
+        if (!isConnected.get()) {
             throw new RuntimeException("Internal CoapServer is not started.");
         }
         request.accept(requestPresender);

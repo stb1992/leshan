@@ -30,6 +30,11 @@ import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
 
+/**
+ * 
+ * @TODO needs to be rewritten using TLS
+ *
+ */
 @Ignore
 public class SecurityTest {
 
@@ -46,7 +51,7 @@ public class SecurityTest {
         helper.createServer(); // default server support PSK
         helper.server.start();
 
-        helper.createPSKClient();
+//        helper.createPSKClient();
         helper.client.start();
 
         helper.server.getSecurityRegistry().add(
@@ -68,7 +73,7 @@ public class SecurityTest {
         helper.createServer(); // default server support PSK
         helper.server.start();
 
-        helper.createPSKClient();
+//        helper.createPSKClient();
         helper.client.start();
 
         helper.server.getSecurityRegistry().add(
@@ -90,7 +95,7 @@ public class SecurityTest {
         helper.createServer(); // default server support PSK
         helper.server.start();
 
-        helper.createPSKClient();
+//        helper.createPSKClient();
         helper.client.start();
 
         helper.server.getSecurityRegistry().add(
@@ -108,7 +113,7 @@ public class SecurityTest {
         helper.createServer(); // default server support PSK
         helper.server.start();
 
-        helper.createPSKClient();
+//        helper.createPSKClient();
         helper.client.start();
 
         helper.server.getSecurityRegistry().add(
@@ -123,10 +128,10 @@ public class SecurityTest {
 
     @Test
     public void registered_device_with_rpk_to_server_with_rpk() throws NonUniqueSecurityInfoException {
-        helper.createServerWithRPK();
+//        helper.createServerWithRPK();
         helper.server.start();
 
-        helper.createRPKClient();
+//        helper.createRPKClient();
         helper.client.start();
 
         helper.server.getSecurityRegistry().add(
@@ -140,10 +145,10 @@ public class SecurityTest {
     }
 
     public void registered_device_with_bad_rpk_to_server_with_rpk() throws NonUniqueSecurityInfoException {
-        helper.createServerWithRPK();
+//        helper.createServerWithRPK();
         helper.server.start();
 
-        helper.createRPKClient();
+//        helper.createRPKClient();
         helper.client.start();
 
         // as it is complex to create a public key, I use the server one :p
@@ -160,10 +165,10 @@ public class SecurityTest {
 
     @Test
     public void registered_device_with_rpk_and_bad_endpoint_to_server_with_rpk() throws NonUniqueSecurityInfoException {
-        helper.createServerWithRPK();
+//        helper.createServerWithRPK();
         helper.server.start();
 
-        helper.createRPKClient();
+//        helper.createRPKClient();
         helper.client.start();
 
         helper.server.getSecurityRegistry().add(
@@ -178,10 +183,10 @@ public class SecurityTest {
 
     @Test
     public void registered_device_with_rpk_and_psk_to_server_with_rpk() throws NonUniqueSecurityInfoException {
-        helper.createServerWithRPK();
+//        helper.createServerWithRPK();
         helper.server.start();
 
-        helper.createPSKandRPKClient();
+//        helper.createPSKandRPKClient();
         helper.client.start();
 
         helper.server.getSecurityRegistry().add(
@@ -201,7 +206,7 @@ public class SecurityTest {
         helper.createServer(); // default server support PSK
         helper.server.start();
 
-        helper.createPSKandRPKClient();
+//        helper.createPSKandRPKClient();
         helper.client.start();
 
         helper.server.getSecurityRegistry().add(

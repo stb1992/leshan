@@ -19,6 +19,8 @@
 package org.eclipse.leshan.client.example;
 
 import java.net.InetSocketAddress;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -28,6 +30,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 
+import javax.net.ssl.SSLContext;
+
 import org.eclipse.leshan.ResponseCode;
 import org.eclipse.leshan.client.LwM2mClient;
 import org.eclipse.leshan.client.californium.LeshanClientBuilder;
@@ -35,7 +39,6 @@ import org.eclipse.leshan.client.resource.BaseInstanceEnabler;
 import org.eclipse.leshan.client.resource.ObjectsInitializer;
 import org.eclipse.leshan.core.node.LwM2mResource;
 import org.eclipse.leshan.core.node.Value;
-import org.eclipse.leshan.core.request.BindingMode;
 import org.eclipse.leshan.core.request.DeregisterRequest;
 import org.eclipse.leshan.core.request.RegisterRequest;
 import org.eclipse.leshan.core.response.LwM2mResponse;
@@ -51,20 +54,30 @@ import org.eclipse.leshan.core.response.ValueResponse;
 public class LeshanClientExample {
     private String registrationID;
 
-    public static void main(final String[] args) {
-        if (args.length != 4 && args.length != 2) {
-            System.out
-                    .println("Usage:\njava -jar target/leshan-client-example-*-SNAPSHOT-jar-with-dependencies.jar [ClientIP] [ClientPort] ServerIP ServerPort");
+    public static void main(final String[] args) throws KeyManagementException, NumberFormatException,
+            NoSuchAlgorithmException {
+        if (args.length < 2 || args.length > 5) {
+            System.out.println("Usage:\njava -jar "
+                            + "target/leshan-client-example-*-SNAPSHOT-jar-with-dependencies.jar [ClientIP] [ClientPort] ServerIP ServerPort [UDP|TCP|TLS]");
         } else {
-            if (args.length == 4)
-                new LeshanClientExample(args[0], Integer.parseInt(args[1]), args[2], Integer.parseInt(args[3]));
-            else
-                new LeshanClientExample("0", 0, args[0], Integer.parseInt(args[1]));
+            switch (args.length) {
+            case 2:
+                new LeshanClientExample("0", 0, args[0], Integer.parseInt(args[1]), "UDP");
+                break;
+            case 3:
+                new LeshanClientExample("0", 0, args[0], Integer.parseInt(args[1]), args[2]);
+                break;
+            case 4:
+                new LeshanClientExample(args[0], Integer.parseInt(args[1]), args[2], Integer.parseInt(args[3]), "UDP");
+                break;
+            case 5:
+                new LeshanClientExample(args[0], Integer.parseInt(args[1]), args[2], Integer.parseInt(args[3]), args[4]);
+            }
         }
     }
 
     public LeshanClientExample(final String localHostName, final int localPort, final String serverHostName,
-            final int serverPort) {
+            final int serverPort, final String binding) throws NoSuchAlgorithmException, KeyManagementException {
 
         // Initialize object list
         final ObjectsInitializer initializer = new ObjectsInitializer();
@@ -76,8 +89,24 @@ public class LeshanClientExample {
 
         final LeshanClientBuilder builder = new LeshanClientBuilder();
 
-        final LwM2mClient client = builder.setObjectsInitializer(initializer).setLocalAddress(clientAddress)
-                .setServerAddress(serverAddress).setBindingMode(BindingMode.T).build();
+        LwM2mClient client;
+        switch (binding) {
+        case "TCP":
+            client = builder.setObjectsInitializer(initializer).setLocalAddress(clientAddress)
+                    .setServerAddress(serverAddress).addBindingModeTCPClient().configure().build();
+            break;
+        case "TLS":
+            final SSLContext context = SSLContext.getInstance("TLSv1.2");
+            context.init(null, null, null);
+            client = builder.setObjectsInitializer(initializer).setLocalAddress(clientAddress)
+                    .setServerAddress(serverAddress).addBindingModeTCPClient().secure().setSSLContext(context)
+                    .configure()
+                    .configure().build();
+            break;
+        default:
+            client = builder.setObjectsInitializer(initializer).setLocalAddress(clientAddress)
+                    .setServerAddress(serverAddress).addBindingModeUDP().configure().build();
+        }
 
         // Start the client
         client.start();
@@ -94,11 +123,13 @@ public class LeshanClientExample {
         } else {
             // TODO Should we have a error message on response ?
             // System.err.println("\tDevice Registration Error: " + response.getErrorMessage());
-            System.err.println("\tDevice Registration Error: " + response.getCode());
-            System.err
-                    .println("If you're having issues connecting to the LWM2M endpoint, try using the DTLS port instead");
+            System.err.println("\tDevice Unable to connect.  Registration Error: " + response.getCode());
         }
 
+        setShutdownHook(client);
+    }
+
+    private void setShutdownHook(final LwM2mClient client) {
         // Deregister on shutdown and stop client.
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
@@ -194,11 +225,11 @@ public class LeshanClientExample {
         }
 
         private String getModelNumber() {
-            return "Model 500";
+            return "generic";
         }
 
         private String getSerialNumber() {
-            return "LT-500-000-0001";
+            return "SN-LWM2M-000-001";
         }
 
         private String getFirmwareVersion() {

@@ -20,9 +20,9 @@ import java.net.InetSocketAddress;
 
 import org.eclipse.leshan.client.LwM2mClient;
 import org.eclipse.leshan.client.californium.LeshanClientBuilder;
-import org.eclipse.leshan.core.request.BindingMode;
 import org.eclipse.leshan.server.LwM2mServer;
 import org.eclipse.leshan.server.californium.LeshanServerBuilder;
+import org.eclipse.leshan.server.californium.LeshanServerBuilder.LeshanTcpServerBuilder;
 import org.eclipse.leshan.server.client.Client;
 import org.eclipse.leshan.server.impl.SecurityRegistryImpl;
 
@@ -33,22 +33,25 @@ import org.eclipse.leshan.server.impl.SecurityRegistryImpl;
 public class IntegrationTestHelper {
 
     static final String ENDPOINT_IDENTIFIER = "kdfflwmtm";
-    private static final InetSocketAddress serverAddress = new InetSocketAddress("localHost", 5683);
-    private static final InetSocketAddress serverSecureAddress = new InetSocketAddress("localHost", 443);
+    private static final String LOCALHOST = "localhost";
+    private static final int PORT = 5683;
+    private static final int SECURE_PORT = 443;
+    private static final InetSocketAddress SERVER_ADDRESS = new InetSocketAddress(LOCALHOST, PORT);
+    private static final InetSocketAddress SECURE_SERVER_ADDRESS = new InetSocketAddress(LOCALHOST, SECURE_PORT);
 
     LwM2mServer server;
     LwM2mClient client;
 
     public void createClient() {
         final LeshanClientBuilder builder = new LeshanClientBuilder();
-        client = builder.setServerAddress(getServerAddress()).setBindingMode(BindingMode.T).build(2, 3);
+        client = builder.setServerAddress(getServerAddress()).addBindingModeTCPClient().configure().build(2, 3);
 
     }
 
     public void createServer() {
-        final LeshanServerBuilder builder = new LeshanServerBuilder();
-        builder.setLocalAddress(serverAddress);
-        builder.setLocalAddressSecure(serverSecureAddress);
+        final LeshanTcpServerBuilder<?> builder = LeshanServerBuilder.getLeshanTCPServerBuilder();
+        builder.setAddress(LOCALHOST);
+        builder.setPort(PORT);
         builder.setSecurityRegistry(new SecurityRegistryImpl() {
             // TODO we should separate SecurityRegistryImpl in 2 registries :
             // InMemorySecurityRegistry and PersistentSecurityRegistry
@@ -63,7 +66,6 @@ public class IntegrationTestHelper {
                 // do not save to file
             }
         });
-        builder.setBindingMode(BindingMode.T);
         server = builder.build();
     }
 
@@ -71,11 +73,11 @@ public class IntegrationTestHelper {
         return server.getClientRegistry().get(ENDPOINT_IDENTIFIER);
     }
 
-    protected InetSocketAddress getServerSecureAddress() {
-        return serverSecureAddress;
-    }
-
     protected InetSocketAddress getServerAddress() {
-        return serverAddress;
+        return SERVER_ADDRESS;
+    }
+    
+    protected InetSocketAddress getServerSecureAddress() {
+        return SECURE_SERVER_ADDRESS;
     }
 }

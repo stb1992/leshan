@@ -18,7 +18,6 @@ package org.eclipse.leshan.integration.tests;
 
 import java.math.BigInteger;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.security.AlgorithmParameters;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -37,6 +36,7 @@ import javax.xml.bind.DatatypeConverter;
 
 import org.eclipse.leshan.client.californium.LeshanClientBuilder;
 import org.eclipse.leshan.server.californium.LeshanServerBuilder;
+import org.eclipse.leshan.server.californium.LeshanServerBuilder.LeshanUDPServerBuilder;
 import org.eclipse.leshan.server.impl.SecurityRegistryImpl;
 
 public class SecureIntegrationTestHelper extends IntegrationTestHelper {
@@ -106,25 +106,25 @@ public class SecureIntegrationTestHelper extends IntegrationTestHelper {
 
     public void createPSKClient() {
         final LeshanClientBuilder builder = new LeshanClientBuilder();
-        client = builder.setServerAddress(getServerSecureAddress()).setPskSecurity(pskIdentity, pskKey).build(2, 3);
+        client = builder.setServerAddress(getServerSecureAddress()).addBindingModeUDP().setPskSecurity(pskIdentity, pskKey).configure().build(2, 3);
     }
 
     public void createRPKClient() {
         final LeshanClientBuilder builder = new LeshanClientBuilder();
-        client = builder.setServerAddress(getServerSecureAddress()).setRpkSecurity(clientPrivateKey, clientPublicKey)
+        client = builder.setServerAddress(getServerSecureAddress()).addBindingModeUDP().setRpkSecurity(clientPrivateKey, clientPublicKey).configure()
                 .build(2, 3);
     }
 
     public void createPSKandRPKClient() {
         final LeshanClientBuilder builder = new LeshanClientBuilder();
-        client = builder.setServerAddress(getServerSecureAddress()).setPskSecurity(pskIdentity, pskKey)
-                .setRpkSecurity(clientPrivateKey, clientPublicKey).build(2, 3);
+        client = builder.setServerAddress(getServerSecureAddress()).addBindingModeUDP().setPskSecurity(pskIdentity, pskKey)
+                .setRpkSecurity(clientPrivateKey, clientPublicKey).configure().build(2, 3);
     }
 
     public void createServerWithRPK() {
-        final LeshanServerBuilder builder = new LeshanServerBuilder();
-        builder.setLocalAddress(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
-        builder.setLocalAddressSecure(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
+        final LeshanUDPServerBuilder builder = LeshanServerBuilder.getLeshanUDPServerBuilder();
+        builder.setLocalAddress(InetAddress.getLoopbackAddress().getHostAddress(), 0);
+        builder.setLocalAddressSecure(InetAddress.getLoopbackAddress().getHostAddress(), 0);
         builder.setSecurityRegistry(new SecurityRegistryImpl(serverPrivateKey, serverPublicKey) {
             // TODO we should separate SecurityRegistryImpl in 2 registries :
             // InMemorySecurityRegistry and PersistentSecurityRegistry

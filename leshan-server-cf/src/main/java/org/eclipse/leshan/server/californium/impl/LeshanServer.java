@@ -15,19 +15,10 @@
  *******************************************************************************/
 package org.eclipse.leshan.server.californium.impl;
 
-import java.net.InetSocketAddress;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.eclipse.californium.core.CoapServer;
-import org.eclipse.californium.core.network.CoAPEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
-import org.eclipse.californium.core.network.tcp.TCPEndpoint;
-import org.eclipse.californium.elements.ConnectorBuilder.CommunicationRole;
-import org.eclipse.californium.scandium.DTLSConnector;
-import org.eclipse.californium.scandium.dtls.cipher.CipherSuite;
 import org.eclipse.leshan.core.request.DownlinkRequest;
 import org.eclipse.leshan.core.response.ExceptionConsumer;
 import org.eclipse.leshan.core.response.LwM2mResponse;
@@ -81,23 +72,22 @@ public class LeshanServer implements LwM2mServer {
 
     /**
      * Initialize a server which will bind to the specified address and port.
+     * TODO: this was modified to accept the Config object, this is pretty ugly code, and needs to be ratified
      *
      * @param localAddress the address to bind the CoAP server.
      * @param localAddressSecure the address to bind the CoAP server for DTLS connection.
      * @param privateKey for RPK authentication mode
      * @param publicKey for RPK authentication mode
      */
-    public LeshanServer(final InetSocketAddress localAddress, final InetSocketAddress localAddressSecure,
-            final ClientRegistry clientRegistry, final SecurityRegistry securityRegistry,
-            final ObservationRegistry observationRegistry, final LwM2mModelProvider modelProvider, 
-            final CommunicationRole role) {
-        Validate.notNull(localAddress, "IP address cannot be null");
-        Validate.notNull(localAddressSecure, "Secure IP address cannot be null");
+    public LeshanServer(final ClientRegistry clientRegistry, final SecurityRegistry securityRegistry,
+            final ObservationRegistry observationRegistry, final LwM2mModelProvider modelProvider,
+            final Set<Endpoint> endpoints) {
+
+        Validate.notNull(endpoints, "endpoints cannot be null");
         Validate.notNull(clientRegistry, "clientRegistry cannot be null");
         Validate.notNull(securityRegistry, "securityRegistry cannot be null");
         Validate.notNull(observationRegistry, "observationRegistry cannot be null");
         Validate.notNull(modelProvider, "modelProvider cannot be null");
-        Validate.notNull(role, "role cannot be null");
 
         // Init registries
         this.clientRegistry = clientRegistry;
@@ -123,51 +113,11 @@ public class LeshanServer implements LwM2mServer {
             }
         });
 
-        // default endpoint
+        // define server and endpoints
         coapServer = new CoapServer();
-        final Set<Endpoint> endpoints = new HashSet<>();
-        
-        Endpoint endpoint;
-        switch(role) {
-        case NODE:
-        	endpoint = new CoAPEndpoint(localAddress);
-        	// secure endpoint
-            final DTLSConnector connector = new DTLSConnector(localAddressSecure);
-            connector.getConfig().setPskStore(new LwM2mPskStore(this.securityRegistry, this.clientRegistry));
-            final PrivateKey privateKey = this.securityRegistry.getServerPrivateKey();
-            final PublicKey publicKey = this.securityRegistry.getServerPublicKey();
-            if (privateKey != null && publicKey != null) {
-                connector.getConfig().setPrivateKey(privateKey, publicKey);
-                // TODO this should be automatically done by scandium
-                connector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8);
-            } else {
-                // TODO this should be automatically done by scandium
-                connector.getConfig().setPreferredCipherSuite(CipherSuite.TLS_PSK_WITH_AES_128_CCM_8);
-            }
-
-            final Endpoint secureEndpoint = new SecureEndpoint(connector);
-            coapServer.addEndpoint(secureEndpoint);
-            endpoints.add(secureEndpoint);
-        	break;
-        case CLIENT:
-        	endpoint = TCPEndpoint.getNewTcpEndpointBuilder()
-			  					  .setAsTcpClient()
-			  					  .setRemoteAddress(localAddress.getHostName())
-			  					  .setPort(localAddress.getPort())
-			  					  .buildTcpEndpoint();
-        	break;
-        case SERVER://not sure if this case is possible
-        	endpoint = TCPEndpoint.getNewTcpEndpointBuilder()
-			  					  .setAsTcpServer()
-			  					  .setRemoteAddress(localAddress.getHostName())
-			  					  .setPort(localAddress.getPort())
-			  					  .buildTcpEndpoint();
-        	break;
-        default:
-        	throw new IllegalArgumentException("A communication ROLE must be passed in");
-        	
+        for (final Endpoint e : endpoints) {
+            coapServer.addEndpoint(e);
         }
-        coapServer.addEndpoint(endpoint);
 
         // define /rd resource
         final RegisterResource rdResource = new RegisterResource(new RegistrationHandler(this.clientRegistry,
@@ -175,7 +125,6 @@ public class LeshanServer implements LwM2mServer {
         coapServer.add(rdResource);
 
         // create sender
-        endpoints.add(endpoint);
         // TODO add a way to set timeout.
         requestSender = new CaliforniumLwM2mRequestSender(endpoints, this.clientRegistry, this.observationRegistry,
                 modelProvider, COAP_REQUEST_TIMEOUT_MILLIS);
@@ -221,7 +170,7 @@ public class LeshanServer implements LwM2mServer {
     }
 
     @Override
-	public void destroy() {
+    public void destroy() {
         // Destroy server
         coapServer.destroy();
 
