@@ -304,13 +304,26 @@ public class ObjectResource extends CoapResource implements LinkFormattable, Not
         System.out.println("URI = " + URI);
         synchronized (observeRelations) {
             for (final ObserveRelation relation : observeRelations) {
-                System.out.println("Relation Path = "
-                        + relation.getExchange().getRequest().getOptions().getUriPathString());
-                if (URI.startsWith(relation.getExchange().getRequest().getOptions().getUriPathString())) {
+                LwM2mPath notifyingPath = new LwM2mPath(URI);
+                LwM2mPath observingPath = new LwM2mPath(relation.getExchange().getRequest().getOptions()
+                        .getUriPathString());
+                if (shouldNotify(observingPath, notifyingPath)) {
                     relation.notifyObservers();
                 }
             }
         }
     }
 
+    protected static boolean shouldNotify(LwM2mPath observingPath, LwM2mPath notifyingPath) {
+        if (observingPath.getObjectId() != notifyingPath.getObjectId()) {
+            return false;
+        }
+        if (observingPath.getObjectInstanceId() != notifyingPath.getObjectInstanceId()) {
+            return observingPath.getObjectInstanceId() == null;
+        }
+        if (observingPath.getResourceId() != notifyingPath.getResourceId()) {
+            return observingPath.getResourceId() == null;
+        }
+        return true;
+    }
 }
