@@ -58,6 +58,60 @@ public class ObserveTest {
     }
 
     @Test
+    public void can_observe_object() throws InterruptedException {
+        // client registration
+        helper.client.send(new RegisterRequest(ENDPOINT_IDENTIFIER));
+
+        TestObservationListener listener = new TestObservationListener();
+        helper.server.getObservationRegistry().addListener(listener);
+
+        // observe devive object
+        helper.server.send(helper.getClient(), new ObserveRequest(2, 0));
+        helper.server.send(helper.getClient(), new ObserveRequest(3, 0, 11));
+        ValueResponse response = helper.server.send(helper.getClient(), new ObserveRequest(4, 0));
+        assertEquals(ResponseCode.CONTENT, response.getCode());
+
+        // write device timezone
+        LwM2mResource newValue = new LwM2mResource(15, Value.newStringValue("Europe/Paris"));
+        LwM2mResponse writeResponse = helper.server.send(helper.getClient(), new WriteRequest(3, 0, 15, newValue, null,
+                true));
+
+        // verify result
+        //listener.waitForNotification(2000);
+        //assertEquals(ResponseCode.CHANGED, writeResponse.getCode());
+        //assertTrue(listener.receievedNotify().get());
+        System.out.println(listener.getContent());
+       // assertEquals(newValue, listener.getContent());
+    }
+    
+    @Test
+    public void can_observe_object_instance() throws InterruptedException {
+        // client registration
+        helper.client.send(new RegisterRequest(ENDPOINT_IDENTIFIER));
+
+        TestObservationListener listener = new TestObservationListener();
+        helper.server.getObservationRegistry().addListener(listener);
+
+        // observe devive object
+        helper.server.send(helper.getClient(), new ObserveRequest(4, 0));
+        helper.server.send(helper.getClient(), new ObserveRequest(3, 0, 11));
+        ValueResponse response = helper.server.send(helper.getClient(), new ObserveRequest(3, 0));
+        assertEquals(ResponseCode.CONTENT, response.getCode());
+
+        // write device timezone
+        LwM2mResource newValue = new LwM2mResource(15, Value.newStringValue("Europe/Paris"));
+        LwM2mResponse writeResponse = helper.server.send(helper.getClient(), new WriteRequest(3, 0, 15, newValue, null,
+                true));
+
+        // verify result
+        listener.waitForNotification(2000);
+        assertEquals(ResponseCode.CHANGED, writeResponse.getCode());
+        assertTrue(listener.receievedNotify().get());
+        System.out.println(listener.getContent());
+       // assertEquals(newValue, listener.getContent());
+    }
+    
+    @Test
     public void can_observe_resource() throws InterruptedException {
         // client registration
         helper.client.send(new RegisterRequest(ENDPOINT_IDENTIFIER));
@@ -89,6 +143,7 @@ public class ObserveTest {
 
         @Override
         public void newValue(final Observation observation, final LwM2mNode value) {
+            
             receivedNotify.set(true);
             content = value;
             latch.countDown();

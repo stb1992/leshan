@@ -47,7 +47,7 @@ public class IntegrationTestHelper {
 
     public void createClient() {
         ObjectsInitializer initializer = new ObjectsInitializer();
-        List<ObjectEnabler> objects = initializer.create(2, 3);
+        List<ObjectEnabler> objects = initializer.create(2, 3, 4);
         client = new LeshanClient(getServerAddress(), new ArrayList<LwM2mObjectEnabler>(objects));
     }
 

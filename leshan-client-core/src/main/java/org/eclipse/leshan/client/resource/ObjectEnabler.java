@@ -88,6 +88,7 @@ public class ObjectEnabler extends BaseObjectEnabler {
         // Manage Object case
         if (path.isObject()) {
             List<LwM2mObjectInstance> lwM2mObjectInstances = new ArrayList<>();
+            System.out.println("INSTANCES======"+instances);
             for (Entry<Integer, LwM2mInstanceEnabler> entry : instances.entrySet()) {
                 lwM2mObjectInstances.add(getLwM2mObjectInstance(entry.getKey(), entry.getValue()));
             }
@@ -108,8 +109,8 @@ public class ObjectEnabler extends BaseObjectEnabler {
         return instance.read(path.getResourceId());
     }
 
-    LwM2mObjectInstance getLwM2mObjectInstance(int instanceid, LwM2mInstanceEnabler instance) {
-        List<LwM2mResource> resources = new ArrayList<>();
+    private LwM2mObjectInstance getLwM2mObjectInstance(int instanceid, LwM2mInstanceEnabler instance) {
+        final List<LwM2mResource> resources = new ArrayList<>();
         for (ResourceModel resourceModel : getObjectModel().resources.values()) {
             if (resourceModel.operations.isReadable()) {
                 ValueResponse response = instance.read(resourceModel.id);
