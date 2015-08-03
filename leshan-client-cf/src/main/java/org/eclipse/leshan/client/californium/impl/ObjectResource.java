@@ -150,7 +150,8 @@ public class ObjectResource extends CoapResource implements LinkFormattable, Not
         // Manage Write Request (replace)
         else {
             final LwM2mPath path = new LwM2mPath(URI);
-            final ContentFormat contentFormat = ContentFormat.fromCode(coapExchange.getRequestOptions().getContentFormat());
+            final ContentFormat contentFormat = ContentFormat.fromCode(coapExchange.getRequestOptions()
+                    .getContentFormat());
             LwM2mNode lwM2mNode;
             try {
                 final LwM2mModel model = new LwM2mModel(nodeEnabler.getObjectModel());
@@ -182,7 +183,8 @@ public class ObjectResource extends CoapResource implements LinkFormattable, Not
         try {
             final ContentFormat contentFormat = ContentFormat.fromCode(exchange.getRequestOptions().getContentFormat());
             final LwM2mModel model = new LwM2mModel(nodeEnabler.getObjectModel());
-            final LwM2mNode lwM2mNode = LwM2mNodeDecoder.decode(exchange.getRequestPayload(), contentFormat, path, model);
+            final LwM2mNode lwM2mNode = LwM2mNodeDecoder.decode(exchange.getRequestPayload(), contentFormat, path,
+                    model);
             if (!(lwM2mNode instanceof LwM2mObjectInstance)) {
                 exchange.respond(ResponseCode.BAD_REQUEST);
                 return;
@@ -273,6 +275,8 @@ public class ObjectResource extends CoapResource implements LinkFormattable, Not
     @Override
     public void addObserveRelation(final ObserveRelation relation) {
         synchronized (observeRelations) {
+            System.out.println("Adding relation: "
+                    + relation.getExchange().getRequest().getOptions().getUriPathString());
             super.addObserveRelation(relation);
             observeRelations.add(relation);
         }
@@ -297,9 +301,12 @@ public class ObjectResource extends CoapResource implements LinkFormattable, Not
     }
 
     protected void notifyObserverRelationsForResource(final String URI) {
+        System.out.println("URI = " + URI);
         synchronized (observeRelations) {
             for (final ObserveRelation relation : observeRelations) {
-                if (relation.getExchange().getRequest().getOptions().getUriPathString().equals(URI)) {
+                System.out.println("Relation Path = "
+                        + relation.getExchange().getRequest().getOptions().getUriPathString());
+                if (URI.startsWith(relation.getExchange().getRequest().getOptions().getUriPathString())) {
                     relation.notifyObservers();
                 }
             }

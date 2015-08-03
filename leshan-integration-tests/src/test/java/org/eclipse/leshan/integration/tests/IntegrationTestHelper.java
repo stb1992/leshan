@@ -44,7 +44,7 @@ public class IntegrationTestHelper {
     public void createClient() {
         final LeshanClientBuilder builder = new LeshanClientBuilder();
 
-        client = builder.setServerAddress(getServerAddress()).build(2, 3);
+        client = builder.setServerAddress(getServerAddress()).build(2, 3, 4);
     }
 
     public void createServer() {
