@@ -18,6 +18,7 @@ package org.eclipse.leshan.integration.tests;
 
 import static org.eclipse.leshan.integration.tests.IntegrationTestHelper.ENDPOINT_IDENTIFIER;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.CountDownLatch;
@@ -26,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.leshan.ResponseCode;
 import org.eclipse.leshan.core.node.LwM2mNode;
+import org.eclipse.leshan.core.node.LwM2mObject;
 import org.eclipse.leshan.core.node.LwM2mResource;
 import org.eclipse.leshan.core.node.Value;
 import org.eclipse.leshan.core.request.ObserveRequest;
@@ -68,22 +70,23 @@ public class ObserveTest {
         // observe devive object
         helper.server.send(helper.getClient(), new ObserveRequest(2, 0));
         helper.server.send(helper.getClient(), new ObserveRequest(3, 0, 11));
-        ValueResponse response = helper.server.send(helper.getClient(), new ObserveRequest(4, 0));
+        ValueResponse response = helper.server.send(helper.getClient(), new ObserveRequest(3));
         assertEquals(ResponseCode.CONTENT, response.getCode());
+        assertNotNull(response.getContent());
 
         // write device timezone
         LwM2mResource newValue = new LwM2mResource(15, Value.newStringValue("Europe/Paris"));
-        LwM2mResponse writeResponse = helper.server.send(helper.getClient(), new WriteRequest(3, 0, 15, newValue, null,
-                true));
+        LwM2mResponse writeResponse = helper.server.send(helper.getClient(),
+                new WriteRequest(3, 0, 15, newValue, null, true));
 
-        // verify result
-        //listener.waitForNotification(2000);
-        //assertEquals(ResponseCode.CHANGED, writeResponse.getCode());
-        //assertTrue(listener.receievedNotify().get());
-        System.out.println(listener.getContent());
-       // assertEquals(newValue, listener.getContent());
+        // // verify result
+        listener.waitForNotification(2000);
+        assertEquals(ResponseCode.CHANGED, writeResponse.getCode());
+        assertTrue(listener.receievedNotify().get());
+        LwM2mObject obj = (LwM2mObject) listener.getContent();
+        assertEquals(newValue, obj.getInstances().get(0).getResources().get(15));
     }
-    
+
     @Test
     public void can_observe_object_instance() throws InterruptedException {
         // client registration
@@ -100,17 +103,17 @@ public class ObserveTest {
 
         // write device timezone
         LwM2mResource newValue = new LwM2mResource(15, Value.newStringValue("Europe/Paris"));
-        LwM2mResponse writeResponse = helper.server.send(helper.getClient(), new WriteRequest(3, 0, 15, newValue, null,
-                true));
+        LwM2mResponse writeResponse = helper.server.send(helper.getClient(),
+                new WriteRequest(3, 0, 15, newValue, null, true));
 
         // verify result
         listener.waitForNotification(2000);
         assertEquals(ResponseCode.CHANGED, writeResponse.getCode());
         assertTrue(listener.receievedNotify().get());
         System.out.println(listener.getContent());
-       // assertEquals(newValue, listener.getContent());
+        // assertEquals(newValue, listener.getContent());
     }
-    
+
     @Test
     public void can_observe_resource() throws InterruptedException {
         // client registration
@@ -125,8 +128,8 @@ public class ObserveTest {
 
         // write device timezone
         LwM2mResource newValue = new LwM2mResource(15, Value.newStringValue("Europe/Paris"));
-        LwM2mResponse writeResponse = helper.server.send(helper.getClient(), new WriteRequest(3, 0, 15, newValue, null,
-                true));
+        LwM2mResponse writeResponse = helper.server.send(helper.getClient(),
+                new WriteRequest(3, 0, 15, newValue, null, true));
 
         // verify result
         listener.waitForNotification(2000);
@@ -143,7 +146,7 @@ public class ObserveTest {
 
         @Override
         public void newValue(final Observation observation, final LwM2mNode value) {
-            
+
             receivedNotify.set(true);
             content = value;
             latch.countDown();
