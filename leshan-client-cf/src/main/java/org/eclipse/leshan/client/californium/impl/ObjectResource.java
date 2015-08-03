@@ -299,9 +299,9 @@ public class ObjectResource extends CoapResource implements LinkFormattable, Not
     }
 
     protected void notifyObserverRelationsForResource(final String URI) {
+        LwM2mPath notifyingPath = new LwM2mPath(URI);
         synchronized (observeRelations) {
             for (final ObserveRelation relation : observeRelations) {
-                LwM2mPath notifyingPath = new LwM2mPath(URI);
                 LwM2mPath observingPath = new LwM2mPath(relation.getExchange().getRequest().getOptions()
                         .getUriPathString());
                 if (shouldNotify(observingPath, notifyingPath)) {
