@@ -271,7 +271,6 @@ public class ObjectResource extends CoapResource implements LinkFormattable, Not
 
     @Override
     public void addObserveRelation(ObserveRelation relation) {
-        System.out.println("Adding relation: " + relation.getExchange().getRequest().getOptions().getUriPathString());
         super.addObserveRelation(relation);
         observeRelations.add(relation);
     }
@@ -283,7 +282,6 @@ public class ObjectResource extends CoapResource implements LinkFormattable, Not
     }
 
     protected void notifyObserverRelationsForResource(String URI) {
-        System.out.println("URI = " + URI);
         for (ObserveRelation relation : observeRelations) {
             LwM2mPath notifyingPath = new LwM2mPath(URI);
             LwM2mPath observingPath = new LwM2mPath(
