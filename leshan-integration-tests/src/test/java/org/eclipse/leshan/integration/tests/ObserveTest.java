@@ -67,7 +67,7 @@ public class ObserveTest {
         TestObservationListener listener = new TestObservationListener();
         helper.server.getObservationRegistry().addListener(listener);
 
-        // observe devive object
+        // observe device object
         helper.server.send(helper.getClient(), new ObserveRequest(2, 0));
         helper.server.send(helper.getClient(), new ObserveRequest(3, 0, 11));
         ValueResponse response = helper.server.send(helper.getClient(), new ObserveRequest(3));
