@@ -79,7 +79,7 @@ public class ObserveTest {
         LwM2mResponse writeResponse = helper.server.send(helper.getClient(),
                 new WriteRequest(3, 0, 15, newValue, null, true));
 
-        // // verify result
+        // verify result
         listener.waitForNotification(2000);
         assertEquals(ResponseCode.CHANGED, writeResponse.getCode());
         assertTrue(listener.receievedNotify().get());
