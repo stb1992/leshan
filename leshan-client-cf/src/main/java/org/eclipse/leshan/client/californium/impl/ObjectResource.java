@@ -312,11 +312,10 @@ public class ObjectResource extends CoapResource implements LinkFormattable, Not
     }
 
     protected static boolean shouldNotify(LwM2mPath observingPath, LwM2mPath notifyingPath) {
-        boolean sameObject = observingPath.getObjectId() == notifyingPath.getObjectId();
-        boolean sameObjectInstanceOrParent = observingPath.getObjectInstanceId() == null
-                || observingPath.getObjectInstanceId() == notifyingPath.getObjectInstanceId();
-        boolean sameResourceOrParent = observingPath.getResourceId() == null
-                || observingPath.getResourceId() == notifyingPath.getResourceId();
-        return sameObject && sameObjectInstanceOrParent && sameResourceOrParent;
+        return observingPath.getObjectId() == notifyingPath.getObjectId()
+                && (observingPath.getObjectInstanceId() == null || observingPath.getObjectInstanceId() == notifyingPath
+                        .getObjectInstanceId())
+                && (observingPath.getResourceId() == null || observingPath.getResourceId() == notifyingPath
+                        .getResourceId());
     }
 }
