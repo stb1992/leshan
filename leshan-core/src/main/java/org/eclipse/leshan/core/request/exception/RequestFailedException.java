@@ -13,16 +13,21 @@
  * Contributors:
  *     Sierra Wireless - initial API and implementation
  *******************************************************************************/
-package org.eclipse.leshan.core.response;
+package org.eclipse.leshan.core.request.exception;
 
 /**
- * Functional interface receiving errors produced by a LWM2M request
+ * Generic exception for all unexpected errors (e.g. rejected request at CoAP level).
  */
-public interface ExceptionConsumer {
+public class RequestFailedException extends RuntimeException {
 
-    /**
-     * Called when a exception occurs during a request
-     * @param e the produced exception
-     */
-    void accept(Exception e);
+    private static final long serialVersionUID = 1L;
+
+    public RequestFailedException() {
+        super();
+    }
+
+    public RequestFailedException(String message) {
+        super(message);
+    }
+
 }

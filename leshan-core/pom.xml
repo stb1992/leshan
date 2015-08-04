@@ -22,7 +22,7 @@ Contributors:
     <parent>
         <groupId>org.eclipse.leshan</groupId>
         <artifactId>leshan</artifactId>
-        <version>99.0.4-SNAPSHOT</version>
+        <version>99.0.5-SNAPSHOT</version>
     </parent>
     <artifactId>leshan-core</artifactId>
     <packaging>bundle</packaging>
@@ -70,13 +70,13 @@ Contributors:
                             org.eclipse.leshan,
                             org.eclipse.leshan.core.model,
                             org.eclipse.leshan.core.model.json,
-                            org.eclipse.leshan.core.node,  
+                            org.eclipse.leshan.core.node,
                             org.eclipse.leshan.core.node.codec,
                             org.eclipse.leshan.core.request,
                             org.eclipse.leshan.core.request.exception,
                             org.eclipse.leshan.core.response,
 							org.eclipse.leshan.tlv,
-                            org.eclipse.leshan.util                                      
+                            org.eclipse.leshan.util
                         </Export-Package>
                         <Import-Package>
                             org.slf4j;version="1.6",

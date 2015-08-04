@@ -20,7 +20,7 @@ Contributors:
 
     <groupId>org.eclipse.leshan</groupId>
     <artifactId>leshan</artifactId>
-    <version>99.0.4-SNAPSHOT</version>
+    <version>99.0.5-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>leshan</name>
@@ -46,7 +46,7 @@ Contributors:
         <module>leshan-client-core</module>
         <module>leshan-client-cf</module>
 
-        <module>leshan-integration-tests</module> 
+        <module>leshan-integration-tests</module>
 		<module>leshan-tcp-integration-tests</module>
         <module>leshan-client-example</module>
         <module>leshan-standalone</module>
@@ -100,14 +100,14 @@ Contributors:
             <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>-->
-    
+
     <distributionManagement>
     	<snapshotRepository>
       		<id>thirdparty-snapshot</id>
       		<url>http://localhost:1234/nexus/content/repositories/thirdparty-snapshot</url>
     	</snapshotRepository>
   	</distributionManagement>
-  	
+
   	<repositories>
   		<repository>
 			<id>thirdparty-snapshot</id>
@@ -151,7 +151,6 @@ Contributors:
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>2.9.1</version>
                         <executions>
                             <execution>
                                 <id>attach-javadocs</id>
@@ -164,7 +163,6 @@ Contributors:
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
-                        <version>2.2.1</version>
                         <executions>
                             <execution>
                                 <id>attach-sources</id>
@@ -184,7 +182,7 @@ Contributors:
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>2.1.2</version>
+                <version>2.2.1</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -193,6 +191,14 @@ Contributors:
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.9.1</version>
+                <configuration>
+                    <excludePackageNames>org.eclipse.leshan.util</excludePackageNames>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -327,7 +333,7 @@ Contributors:
                 <artifactId>scandium</artifactId>
                 <!--  <version>${californium.version}</version>-->
                 <version>1.0.0-M3</version>
-                
+
             </dependency>
             <dependency>
                 <groupId>com.google.code.gson</groupId>
@@ -358,7 +364,7 @@ Contributors:
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-continuation</artifactId>
                 <version>${jetty.version}</version>
-            </dependency>            
+            </dependency>
             <dependency>
                 <groupId>joda-time</groupId>
                 <artifactId>joda-time</artifactId>

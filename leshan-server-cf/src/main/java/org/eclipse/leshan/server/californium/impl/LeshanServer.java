@@ -20,9 +20,9 @@ import java.util.Set;
 import org.eclipse.californium.core.CoapServer;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.leshan.core.request.DownlinkRequest;
-import org.eclipse.leshan.core.response.ExceptionConsumer;
+import org.eclipse.leshan.core.response.ErrorCallback;
 import org.eclipse.leshan.core.response.LwM2mResponse;
-import org.eclipse.leshan.core.response.ResponseConsumer;
+import org.eclipse.leshan.core.response.ResponseCallback;
 import org.eclipse.leshan.server.Destroyable;
 import org.eclipse.leshan.server.LwM2mServer;
 import org.eclipse.leshan.server.Startable;
@@ -32,8 +32,10 @@ import org.eclipse.leshan.server.client.Client;
 import org.eclipse.leshan.server.client.ClientRegistry;
 import org.eclipse.leshan.server.client.ClientRegistryListener;
 import org.eclipse.leshan.server.model.LwM2mModelProvider;
+import org.eclipse.leshan.server.observation.Observation;
 import org.eclipse.leshan.server.observation.ObservationRegistry;
 import org.eclipse.leshan.server.registration.RegistrationHandler;
+import org.eclipse.leshan.server.security.SecurityInfo;
 import org.eclipse.leshan.server.security.SecurityRegistry;
 import org.eclipse.leshan.util.Validate;
 import org.slf4j.Logger;
@@ -58,8 +60,6 @@ public class LeshanServer implements LwM2mServer {
 
     private static final Logger LOG = LoggerFactory.getLogger(LeshanServer.class);
 
-    private static final int COAP_REQUEST_TIMEOUT_MILLIS = 5000;
-
     private final CaliforniumLwM2mRequestSender requestSender;
 
     private final ClientRegistry clientRegistry;
@@ -71,13 +71,15 @@ public class LeshanServer implements LwM2mServer {
     private final LwM2mModelProvider modelProvider;
 
     /**
-     * Initialize a server which will bind to the specified address and port.
-     * TODO: this was modified to accept the Config object, this is pretty ugly code, and needs to be ratified
+     * Initialize a server which will bind to the specified address and port. TODO: this was modified to accept the
+     * Config object, this is pretty ugly code, and needs to be ratified
      *
      * @param localAddress the address to bind the CoAP server.
      * @param localAddressSecure the address to bind the CoAP server for DTLS connection.
-     * @param privateKey for RPK authentication mode
-     * @param publicKey for RPK authentication mode
+     * @param clientRegistry the registered {@link Client} registry.
+     * @param securityRegistry the {@link SecurityInfo} registry.
+     * @param observationRegistry the {@link Observation} registry.
+     * @param modelProvider provides the objects description for each client.
      */
     public LeshanServer(final ClientRegistry clientRegistry, final SecurityRegistry securityRegistry,
             final ObservationRegistry observationRegistry, final LwM2mModelProvider modelProvider,
@@ -125,9 +127,7 @@ public class LeshanServer implements LwM2mServer {
         coapServer.add(rdResource);
 
         // create sender
-        // TODO add a way to set timeout.
-        requestSender = new CaliforniumLwM2mRequestSender(endpoints, this.clientRegistry, this.observationRegistry,
-                modelProvider, COAP_REQUEST_TIMEOUT_MILLIS);
+        requestSender = new CaliforniumLwM2mRequestSender(endpoints, this.observationRegistry, modelProvider);
     }
 
     @Override
@@ -210,12 +210,17 @@ public class LeshanServer implements LwM2mServer {
 
     @Override
     public <T extends LwM2mResponse> T send(final Client destination, final DownlinkRequest<T> request) {
-        return requestSender.send(destination, request);
+        return requestSender.send(destination, request, null);
+    }
+
+    @Override
+    public <T extends LwM2mResponse> T send(final Client destination, final DownlinkRequest<T> request, long timeout) {
+        return requestSender.send(destination, request, timeout);
     }
 
     @Override
     public <T extends LwM2mResponse> void send(final Client destination, final DownlinkRequest<T> request,
-            final ResponseConsumer<T> responseCallback, final ExceptionConsumer errorCallback) {
+            final ResponseCallback<T> responseCallback, final ErrorCallback errorCallback) {
         requestSender.send(destination, request, responseCallback, errorCallback);
     }
 
