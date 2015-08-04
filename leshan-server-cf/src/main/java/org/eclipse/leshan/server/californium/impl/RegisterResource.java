@@ -153,8 +153,8 @@ public class RegisterResource extends CoapResource {
         }
 
         final RegisterRequest registerRequest = new RegisterRequest(endpoint, lifetime, lwVersion, bindingModes,
-                smsNumber, objectLinks, request.getSource(), request.getSourcePort(), registrationEndpoint,
-                pskIdentity, rpk);
+                smsNumber, objectLinks, request.getSource(), request.getSourcePort(), registrationEndpoint, pskIdentity,
+                rpk);
 
         // Handle request
         // -------------------------------
@@ -177,7 +177,7 @@ public class RegisterResource extends CoapResource {
         // --------------------------------
         Long lifetime = null;
         String smsNumber = null;
-        BindingMode binding = null;
+        BindingMode binding = BindingMode.U;
         LinkObject[] objectLinks = null;
         for (String param : request.getOptions().getUriQuery()) {
             if (param.startsWith(QUERY_PARAM_LIFETIME)) {
@@ -272,8 +272,8 @@ public class RegisterResource extends CoapResource {
                     && deregisterResponse.getCode().equals(org.eclipse.leshan.ResponseCode.DELETED)) {
                 // clean the DTLS Session
                 final Request request = exchange.advanced().getRequest();
-                ((SecureEndpoint) exchange.advanced().getEndpoint()).getDTLSConnector().close(
-                        new InetSocketAddress(request.getSource(), request.getSourcePort()));
+                ((SecureEndpoint) exchange.advanced().getEndpoint()).getDTLSConnector()
+                        .close(new InetSocketAddress(request.getSource(), request.getSourcePort()));
             }
 
         } else {
