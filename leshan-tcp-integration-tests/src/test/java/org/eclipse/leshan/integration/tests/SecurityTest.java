@@ -22,7 +22,7 @@ import java.security.PublicKey;
 
 import org.eclipse.leshan.ResponseCode;
 import org.eclipse.leshan.core.request.RegisterRequest;
-import org.eclipse.leshan.core.request.exception.RequestTimeoutException;
+import org.eclipse.leshan.core.request.exception.TimeoutException;
 import org.eclipse.leshan.core.response.RegisterResponse;
 import org.eclipse.leshan.server.security.NonUniqueSecurityInfoException;
 import org.eclipse.leshan.server.security.SecurityInfo;
@@ -51,7 +51,7 @@ public class SecurityTest {
         helper.createServer(); // default server support PSK
         helper.server.start();
 
-//        helper.createPSKClient();
+        // helper.createPSKClient();
         helper.client.start();
 
         helper.server.getSecurityRegistry().add(
@@ -68,12 +68,12 @@ public class SecurityTest {
     // TODO I am not sure this must end with a timeout ...
     // We will ignore this test case waiting we could configure timeout or we handle this in a better way
     @Ignore
-    @Test(expected = RequestTimeoutException.class)
+    @Test(expected = TimeoutException.class)
     public void registered_device_with_bad_psk_identity_to_server_with_psk() throws NonUniqueSecurityInfoException {
         helper.createServer(); // default server support PSK
         helper.server.start();
 
-//        helper.createPSKClient();
+        // helper.createPSKClient();
         helper.client.start();
 
         helper.server.getSecurityRegistry().add(
@@ -90,12 +90,12 @@ public class SecurityTest {
     // TODO I am not sure this must end with a timeout ...
     // We will ignore this test case waiting we could configure timeout or we handle this in a better way
     @Ignore
-    @Test(expected = RequestTimeoutException.class)
+    @Test(expected = TimeoutException.class)
     public void registered_device_with_bad_psk_key_to_server_with_psk() throws NonUniqueSecurityInfoException {
         helper.createServer(); // default server support PSK
         helper.server.start();
 
-//        helper.createPSKClient();
+        // helper.createPSKClient();
         helper.client.start();
 
         helper.server.getSecurityRegistry().add(
@@ -113,7 +113,7 @@ public class SecurityTest {
         helper.createServer(); // default server support PSK
         helper.server.start();
 
-//        helper.createPSKClient();
+        // helper.createPSKClient();
         helper.client.start();
 
         helper.server.getSecurityRegistry().add(
@@ -128,10 +128,10 @@ public class SecurityTest {
 
     @Test
     public void registered_device_with_rpk_to_server_with_rpk() throws NonUniqueSecurityInfoException {
-//        helper.createServerWithRPK();
+        // helper.createServerWithRPK();
         helper.server.start();
 
-//        helper.createRPKClient();
+        // helper.createRPKClient();
         helper.client.start();
 
         helper.server.getSecurityRegistry().add(
@@ -145,10 +145,10 @@ public class SecurityTest {
     }
 
     public void registered_device_with_bad_rpk_to_server_with_rpk() throws NonUniqueSecurityInfoException {
-//        helper.createServerWithRPK();
+        // helper.createServerWithRPK();
         helper.server.start();
 
-//        helper.createRPKClient();
+        // helper.createRPKClient();
         helper.client.start();
 
         // as it is complex to create a public key, I use the server one :p
@@ -165,10 +165,10 @@ public class SecurityTest {
 
     @Test
     public void registered_device_with_rpk_and_bad_endpoint_to_server_with_rpk() throws NonUniqueSecurityInfoException {
-//        helper.createServerWithRPK();
+        // helper.createServerWithRPK();
         helper.server.start();
 
-//        helper.createRPKClient();
+        // helper.createRPKClient();
         helper.client.start();
 
         helper.server.getSecurityRegistry().add(
@@ -183,10 +183,10 @@ public class SecurityTest {
 
     @Test
     public void registered_device_with_rpk_and_psk_to_server_with_rpk() throws NonUniqueSecurityInfoException {
-//        helper.createServerWithRPK();
+        // helper.createServerWithRPK();
         helper.server.start();
 
-//        helper.createPSKandRPKClient();
+        // helper.createPSKandRPKClient();
         helper.client.start();
 
         helper.server.getSecurityRegistry().add(
@@ -206,7 +206,7 @@ public class SecurityTest {
         helper.createServer(); // default server support PSK
         helper.server.start();
 
-//        helper.createPSKandRPKClient();
+        // helper.createPSKandRPKClient();
         helper.client.start();
 
         helper.server.getSecurityRegistry().add(
