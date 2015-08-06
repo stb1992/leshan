@@ -100,7 +100,7 @@ Contributors:
                             org.eclipse.californium.elements.tcp.client,
                             org.eclipse.californium.scandium,
                             org.eclipse.californium.scandium.dtls.cipher,
-                            org.eclipse.californium.scandium.dtls.pskstore
+                            org.eclipse.californium.scandium.dtls.pskstore,
                             org.eclipse.leshan,
                             org.eclipse.leshan.core.model,
                             org.eclipse.leshan.core.node,
@@ -115,7 +115,7 @@ Contributors:
                             org.eclipse.leshan.client.resource,
                             org.eclipse.leshan.client.util,
                             org.w3c.dom,
-                            org.xml.sax,
+                            org.xml.sax
                         </Import-Package>
                     </instructions>
                 </configuration>
