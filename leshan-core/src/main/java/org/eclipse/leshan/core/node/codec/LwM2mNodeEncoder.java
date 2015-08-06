@@ -103,8 +103,9 @@ public class LwM2mNodeEncoder {
 
         @Override
         public void visit(LwM2mObject object) {
-            // TODO needed to encode multiple instances
-            throw new UnsupportedOperationException("Object TLV encoding not supported");
+            for (LwM2mObjectInstance instance : object.getInstances().values()) {
+                instance.accept(this);
+            }
         }
 
         @Override
@@ -128,13 +129,13 @@ public class LwM2mNodeEncoder {
             if (resource.isMultiInstances()) {
                 Tlv[] instances = new Tlv[resource.getValues().length];
                 for (int i = 0; i < resource.getValues().length; i++) {
-                    instances[i] = new Tlv(TlvType.RESOURCE_INSTANCE, null, this.encodeTlvValue(convertValue(
-                            resource.getValues()[i], expectedType)), i);
+                    instances[i] = new Tlv(TlvType.RESOURCE_INSTANCE, null,
+                            this.encodeTlvValue(convertValue(resource.getValues()[i], expectedType)), i);
                 }
                 rTlv = new Tlv(TlvType.MULTIPLE_RESOURCE, instances, null, resource.getId());
             } else {
-                rTlv = new Tlv(TlvType.RESOURCE_VALUE, null, this.encodeTlvValue(convertValue(resource.getValue(),
-                        expectedType)), resource.getId());
+                rTlv = new Tlv(TlvType.RESOURCE_VALUE, null,
+                        this.encodeTlvValue(convertValue(resource.getValue(), expectedType)), resource.getId());
             }
 
             try {
@@ -299,8 +300,8 @@ public class LwM2mNodeEncoder {
                 LOG.debug("Trying to convert string value {} to date", value.value);
                 // let's assume we received an ISO 8601 format date
                 try {
-                    return Value.newDateValue(javax.xml.bind.DatatypeConverter.parseDateTime((String) value.value)
-                            .getTime());
+                    return Value.newDateValue(
+                            javax.xml.bind.DatatypeConverter.parseDateTime((String) value.value).getTime());
                 } catch (IllegalArgumentException e) {
                     LOG.debug("Unable to convert string to date", e);
                 }

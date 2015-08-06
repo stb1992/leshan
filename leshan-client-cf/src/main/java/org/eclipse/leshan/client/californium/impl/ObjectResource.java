@@ -150,7 +150,8 @@ public class ObjectResource extends CoapResource implements LinkFormattable, Not
         // Manage Write Request (replace)
         else {
             final LwM2mPath path = new LwM2mPath(URI);
-            final ContentFormat contentFormat = ContentFormat.fromCode(coapExchange.getRequestOptions().getContentFormat());
+            final ContentFormat contentFormat = ContentFormat.fromCode(coapExchange.getRequestOptions()
+                    .getContentFormat());
             LwM2mNode lwM2mNode;
             try {
                 final LwM2mModel model = new LwM2mModel(nodeEnabler.getObjectModel());
@@ -182,7 +183,8 @@ public class ObjectResource extends CoapResource implements LinkFormattable, Not
         try {
             final ContentFormat contentFormat = ContentFormat.fromCode(exchange.getRequestOptions().getContentFormat());
             final LwM2mModel model = new LwM2mModel(nodeEnabler.getObjectModel());
-            final LwM2mNode lwM2mNode = LwM2mNodeDecoder.decode(exchange.getRequestPayload(), contentFormat, path, model);
+            final LwM2mNode lwM2mNode = LwM2mNodeDecoder.decode(exchange.getRequestPayload(), contentFormat, path,
+                    model);
             if (!(lwM2mNode instanceof LwM2mObjectInstance)) {
                 exchange.respond(ResponseCode.BAD_REQUEST);
                 return;
@@ -297,13 +299,23 @@ public class ObjectResource extends CoapResource implements LinkFormattable, Not
     }
 
     protected void notifyObserverRelationsForResource(final String URI) {
+        LwM2mPath notifyingPath = new LwM2mPath(URI);
         synchronized (observeRelations) {
             for (final ObserveRelation relation : observeRelations) {
-                if (relation.getExchange().getRequest().getOptions().getUriPathString().equals(URI)) {
+                LwM2mPath observingPath = new LwM2mPath(relation.getExchange().getRequest().getOptions()
+                        .getUriPathString());
+                if (shouldNotify(observingPath, notifyingPath)) {
                     relation.notifyObservers();
                 }
             }
         }
     }
 
+    protected static boolean shouldNotify(LwM2mPath observingPath, LwM2mPath notifyingPath) {
+        return observingPath.getObjectId() == notifyingPath.getObjectId()
+                && (observingPath.getObjectInstanceId() == null || observingPath.getObjectInstanceId() == notifyingPath
+                        .getObjectInstanceId())
+                && (observingPath.getResourceId() == null || observingPath.getResourceId() == notifyingPath
+                        .getResourceId());
+    }
 }
