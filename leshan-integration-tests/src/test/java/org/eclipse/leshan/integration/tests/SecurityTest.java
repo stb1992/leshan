@@ -30,7 +30,7 @@ import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
 
-// TODO: Andrew Summers, 2015-08-10, EDGEBOX-5858
+// FIXME: Andrew Summers, 2015-08-10
 // After work on the TCP-Integration branch, these tests are 
 // now failing. We need to make them pass before issuing a 
 // PR into Leshan upstream.
