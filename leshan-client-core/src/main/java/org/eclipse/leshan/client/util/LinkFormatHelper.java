@@ -25,11 +25,12 @@ import java.util.Map;
 
 import org.eclipse.leshan.LinkObject;
 import org.eclipse.leshan.client.resource.LwM2mObjectEnabler;
+import org.eclipse.leshan.core.model.LwM2mModel;
 import org.eclipse.leshan.core.model.ObjectModel;
 import org.eclipse.leshan.core.model.ResourceModel;
 
 /**
- * An Utility class which help to generate Link Objects from {@link LwM2mObjectEnabler} and {@link LwM2mModell}.<br>
+ * An Utility class which help to generate Link Objects from {@link LwM2mObjectEnabler} and {@link LwM2mModel}.<br>
  * Used for register and discover payload.
  */
 public final class LinkFormatHelper {
@@ -51,12 +52,12 @@ public final class LinkFormatHelper {
 
         // sort resources
         for (LwM2mObjectEnabler objectEnabler : objectEnablers) {
-            List<Integer> availableInstance = objectEnabler.getAvailableInstance();
+            List<Integer> availableInstance = objectEnabler.getAvailableInstanceIds();
             if (availableInstance.isEmpty()) {
                 String objectInstanceUrl = getPath("/", rootPath, Integer.toString(objectEnabler.getId()));
                 linkObjects.add(new LinkObject(objectInstanceUrl));
             } else {
-                for (Integer instanceId : objectEnabler.getAvailableInstance()) {
+                for (Integer instanceId : objectEnabler.getAvailableInstanceIds()) {
                     String objectInstanceUrl = getPath("/", rootPath, Integer.toString(objectEnabler.getId()),
                             instanceId.toString());
                     linkObjects.add(new LinkObject(objectInstanceUrl));

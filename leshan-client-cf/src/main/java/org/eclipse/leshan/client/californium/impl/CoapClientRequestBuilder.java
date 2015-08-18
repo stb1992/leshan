@@ -83,7 +83,7 @@ public class CoapClientRequestBuilder implements UplinkRequestVisitor {
 
     @Override
     public void visit(final UpdateRequest request) {
-        coapRequest = Request.newPut();
+        coapRequest = Request.newPost();
         buildRequestSettings();
         coapRequest.getOptions().setUriPath(request.getRegistrationId());
 
