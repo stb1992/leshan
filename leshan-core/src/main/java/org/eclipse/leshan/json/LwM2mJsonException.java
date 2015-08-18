@@ -12,18 +12,23 @@
  * 
  * Contributors:
  *     Sierra Wireless - initial API and implementation
+ *     Gemalto M2M GmbH
  *******************************************************************************/
-package org.eclipse.leshan.core.request.exception;
+package org.eclipse.leshan.json;
 
-public class RequestTimeoutException extends ResourceAccessException {
+/**
+ * Exception thrown in case of JSON parsing error
+ */
+public class LwM2mJsonException extends Exception {
 
-    private static final long serialVersionUID = -6372006578730743741L;
+    private static final long serialVersionUID = 1L;
 
-    /**
-     * @param uri the resource URI accessed
-     * @param timeout the number of milliseconds after which the request has timed out
-     */
-    public RequestTimeoutException(String uri, long timeout) {
-        super(null, uri, String.format("Request timed out after %d milliseconds", timeout));
+    public LwM2mJsonException(String message) {
+        super(message);
     }
+
+    public LwM2mJsonException(String message, Exception cause) {
+        super(message, cause);
+    }
+
 }

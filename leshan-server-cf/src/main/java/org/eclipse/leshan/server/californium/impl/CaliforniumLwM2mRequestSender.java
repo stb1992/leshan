@@ -17,10 +17,8 @@ package org.eclipse.leshan.server.californium.impl;
 
 import java.net.InetSocketAddress;
 import java.util.Set;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -30,13 +28,11 @@ import org.eclipse.californium.core.coap.Response;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.leshan.core.model.LwM2mModel;
 import org.eclipse.leshan.core.request.DownlinkRequest;
-import org.eclipse.leshan.core.request.exception.RejectionException;
-import org.eclipse.leshan.core.request.exception.RequestTimeoutException;
-import org.eclipse.leshan.core.response.ExceptionConsumer;
+import org.eclipse.leshan.core.request.exception.RequestFailedException;
+import org.eclipse.leshan.core.response.ErrorCallback;
 import org.eclipse.leshan.core.response.LwM2mResponse;
-import org.eclipse.leshan.core.response.ResponseConsumer;
+import org.eclipse.leshan.core.response.ResponseCallback;
 import org.eclipse.leshan.server.client.Client;
-import org.eclipse.leshan.server.client.ClientRegistry;
 import org.eclipse.leshan.server.model.LwM2mModelProvider;
 import org.eclipse.leshan.server.observation.ObservationRegistry;
 import org.eclipse.leshan.server.request.LwM2mRequestSender;
@@ -49,32 +45,26 @@ public class CaliforniumLwM2mRequestSender implements LwM2mRequestSender {
     private static final Logger LOG = LoggerFactory.getLogger(CaliforniumLwM2mRequestSender.class);
 
     private final Set<Endpoint> endpoints;
-    private final ClientRegistry clientRegistry;
     private final ObservationRegistry observationRegistry;
     private final LwM2mModelProvider modelProvider;
-    private final long timeoutMillis;
 
     /**
      * @param endpoints the CoAP endpoints to use for sending requests
-     * @param clientRegistry the registry which stores all the registered clients
      * @param observationRegistry the registry for keeping track of observed resources
      * @param modelProvider provides the supported objects definitions
-     * @param timeoutMillis timeout for synchronously sending of CoAP request
      */
-    public CaliforniumLwM2mRequestSender(final Set<Endpoint> endpoints, final ClientRegistry clientRegistry,
-            final ObservationRegistry observationRegistry, LwM2mModelProvider modelProvider, final long timeoutMillis) {
+    public CaliforniumLwM2mRequestSender(final Set<Endpoint> endpoints, final ObservationRegistry observationRegistry,
+            LwM2mModelProvider modelProvider) {
         Validate.notNull(endpoints);
         Validate.notNull(observationRegistry);
         Validate.notNull(modelProvider);
-        this.clientRegistry = clientRegistry;
         this.observationRegistry = observationRegistry;
         this.endpoints = endpoints;
-        this.timeoutMillis = timeoutMillis;
         this.modelProvider = modelProvider;
     }
 
     @Override
-    public <T extends LwM2mResponse> T send(final Client destination, final DownlinkRequest<T> request) {
+    public <T extends LwM2mResponse> T send(final Client destination, final DownlinkRequest<T> request, Long timeout) {
 
         // Retrieve the objects definition
         final LwM2mModel model = modelProvider.getObjectModel(destination);
@@ -85,8 +75,7 @@ public class CaliforniumLwM2mRequestSender implements LwM2mRequestSender {
         final Request coapRequest = coapRequestBuilder.getRequest();
 
         // Send CoAP request synchronously
-        final SyncRequestObserver<T> syncMessageObserver = new SyncRequestObserver<T>(coapRequest, destination,
-                timeoutMillis) {
+        final SyncRequestObserver<T> syncMessageObserver = new SyncRequestObserver<T>(coapRequest, destination, timeout) {
             @Override
             public T buildResponse(final Response coapResponse) {
                 // Build LwM2m response
@@ -108,7 +97,7 @@ public class CaliforniumLwM2mRequestSender implements LwM2mRequestSender {
 
     @Override
     public <T extends LwM2mResponse> void send(final Client destination, final DownlinkRequest<T> request,
-            final ResponseConsumer<T> responseCallback, final ExceptionConsumer errorCallback) {
+            final ResponseCallback<T> responseCallback, final ErrorCallback errorCallback) {
         // Retrieve the objects definition
         final LwM2mModel model = modelProvider.getObjectModel(destination);
 
@@ -171,11 +160,11 @@ public class CaliforniumLwM2mRequestSender implements LwM2mRequestSender {
 
     private abstract class AsyncRequestObserver<T extends LwM2mResponse> extends AbstractRequestObserver<T> {
 
-        ResponseConsumer<T> responseCallback;
-        ExceptionConsumer errorCallback;
+        ResponseCallback<T> responseCallback;
+        ErrorCallback errorCallback;
 
         AsyncRequestObserver(final Request coapRequest, final Client client,
-                final ResponseConsumer<T> responseCallback, final ExceptionConsumer errorCallback) {
+                final ResponseCallback<T> responseCallback, final ErrorCallback errorCallback) {
             super(coapRequest, client);
             this.responseCallback = responseCallback;
             this.errorCallback = errorCallback;
@@ -187,10 +176,10 @@ public class CaliforniumLwM2mRequestSender implements LwM2mRequestSender {
             try {
                 final T lwM2mResponseT = buildResponse(coapResponse);
                 if (lwM2mResponseT != null) {
-                    responseCallback.accept(lwM2mResponseT);
+                    responseCallback.onResponse(lwM2mResponseT);
                 }
             } catch (final Exception e) {
-                errorCallback.accept(e);
+                errorCallback.onError(e);
             } finally {
                 coapRequest.removeMessageObserver(this);
             }
@@ -198,18 +187,17 @@ public class CaliforniumLwM2mRequestSender implements LwM2mRequestSender {
 
         @Override
         public void onTimeout() {
-            clientRegistry.deregisterClient(client.getRegistrationId());
-            errorCallback.accept(new TimeoutException());
+            errorCallback.onError(new org.eclipse.leshan.core.request.exception.TimeoutException());
         }
 
         @Override
         public void onCancel() {
-            errorCallback.accept(new CancellationException());
+            errorCallback.onError(new RequestFailedException("Canceled request"));
         }
 
         @Override
         public void onReject() {
-            errorCallback.accept(new RejectionException());
+            errorCallback.onError(new RequestFailedException("Rejected request"));
         }
 
     }
@@ -220,10 +208,9 @@ public class CaliforniumLwM2mRequestSender implements LwM2mRequestSender {
         AtomicReference<T> ref = new AtomicReference<T>(null);
         AtomicBoolean coapTimeout = new AtomicBoolean(false);
         AtomicReference<RuntimeException> exception = new AtomicReference<>();
+        Long timeout;
 
-        long timeout;
-
-        public SyncRequestObserver(final Request coapRequest, final Client client, final long timeout) {
+        public SyncRequestObserver(final Request coapRequest, final Client client, final Long timeout) {
             super(coapRequest, client);
             this.timeout = timeout;
         }
@@ -251,25 +238,26 @@ public class CaliforniumLwM2mRequestSender implements LwM2mRequestSender {
 
         @Override
         public void onCancel() {
+            LOG.debug(String.format("Synchronous request cancelled %s", coapRequest));
             latch.countDown();
         }
 
         @Override
         public void onReject() {
+            exception.set(new RequestFailedException("Rejected request"));
             latch.countDown();
         }
 
         public T waitForResponse() {
             try {
-                final boolean latchTimeout = latch.await(timeout, TimeUnit.MILLISECONDS);
-                if (!latchTimeout || coapTimeout.get()) {
-                    clientRegistry.deregisterClient(client.getRegistrationId());
+                boolean timeElapsed = false;
+                if (timeout != null) {
+                    timeElapsed = !latch.await(timeout, TimeUnit.MILLISECONDS);
+                } else {
+                    latch.await();
+                }
+                if (timeElapsed || coapTimeout.get()) {
                     coapRequest.cancel();
-                    if (exception.get() != null) {
-                        throw exception.get();
-                    } else {
-                        throw new RequestTimeoutException(coapRequest.getURI(), timeout);
-                    }
                 }
             } catch (final InterruptedException e) {
                 // no idea why some other thread should have interrupted this thread
