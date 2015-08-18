@@ -22,7 +22,7 @@ Contributors:
     <parent>
         <groupId>org.eclipse.leshan</groupId>
         <artifactId>leshan</artifactId>
-        <version>99.0.5-SNAPSHOT</version>
+        <version>99.0.7-SNAPSHOT</version>
     </parent>
     <artifactId>leshan-client-core</artifactId>
     <name>leshan - client core</name>
