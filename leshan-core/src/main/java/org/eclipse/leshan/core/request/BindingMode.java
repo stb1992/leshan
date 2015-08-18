@@ -56,9 +56,11 @@ public enum BindingMode {
 	public static EnumSet<BindingMode> parseFromString(final String bindingModeString) {
 		final EnumSet<BindingMode> bindingModes = EnumSet.noneOf(BindingMode.class);
 		if(bindingModeString != null && !bindingModeString.isEmpty()) {
-			final String[] bindingComponent = bindingModeString.split(".");
+			final String[] bindingComponent = bindingModeString.split("");
 			for(final String bm : bindingComponent) {
-				bindingModes.add(BindingMode.valueOf(bm));
+				if(!bm.isEmpty()) {
+					bindingModes.add(BindingMode.valueOf(bm));
+				}
 			}
 		}
 		return bindingModes;
